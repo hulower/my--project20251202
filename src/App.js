@@ -1,24 +1,28 @@
-import logo from './logo.svg';
+import { Link } from 'react-router-dom';
 import './App.css';
+import AppRoutes from './routes/AppRoutes';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <>
+      <nav
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '1rem',
+          padding: '1rem',
+          backgroundColor: '#20232a',
+        }}
+      >
+        <Link to="/" style={{ color: '#61dafb', textDecoration: 'none' }}>
+          首頁
+        </Link>
+        <Link to="/blog" style={{ color: '#61dafb', textDecoration: 'none' }}>
+          個人博客
+        </Link>
+      </nav>
+      <AppRoutes />
+    </>
   );
 }
 
