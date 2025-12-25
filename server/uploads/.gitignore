@@ -1,0 +1,8 @@
+# 忽略所有上传的文件
+*
+
+# 但保留 .gitignore 和目录结构
+!.gitignore
+!avatars/
+!avatars/.gitkeep
+

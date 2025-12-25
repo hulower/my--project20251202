@@ -7,18 +7,39 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL ||
 async function request(path, options = {}) {
   const url = `${API_BASE}${path}`;
   const res = await fetch(url, options);
+  
+  const contentType = res.headers.get('content-type') || '';
+  let responseData;
+  
+  if (contentType.includes('application/json')) {
+    responseData = await res.json();
+  } else {
+    responseData = await res.text();
+  }
+  
+  // 检查响应格式
+  if (responseData && typeof responseData === 'object' && 'code' in responseData) {
+    // 统一格式响应：{ code, success, message, data, timestamp }
+    if (!responseData.success) {
+      // 业务错误
+      const error = new Error(responseData.message || '请求失败');
+      error.code = responseData.code;
+      error.httpStatus = res.status;
+      throw error;
+    }
+    // 返回 data 字段
+    return responseData.data;
+  }
+  
+  // 旧格式或其他格式，直接返回
   if (!res.ok) {
-    const text = await res.text();
-    const error = new Error(`Request failed with status ${res.status}`);
+    const error = new Error(responseData.message || responseData.error || `Request failed with status ${res.status}`);
     error.status = res.status;
-    error.body = text;
+    error.body = responseData;
     throw error;
   }
-  const contentType = res.headers.get('content-type') || '';
-  if (contentType.includes('application/json')) {
-    return res.json();
-  }
-  return res.text();
+  
+  return responseData;
 }
 
 export function get(path) {
@@ -43,6 +64,41 @@ export function put(path, body) {
 
 export function del(path) {
   return request(path, { method: 'DELETE' });
+}
+
+// 文件上传专用（支持 FormData）
+export function upload(path, formData) {
+  const url = `${API_BASE}${path}`;
+  return fetch(url, {
+    method: 'POST',
+    body: formData,
+    // 不设置 Content-Type，让浏览器自动设置（包含 boundary）
+  }).then(async (res) => {
+    const responseData = await res.json();
+    
+    // 检查统一格式响应
+    if (responseData && typeof responseData === 'object' && 'code' in responseData) {
+      if (!responseData.success) {
+        // 业务错误
+        const error = new Error(responseData.message || '上传失败');
+        error.code = responseData.code;
+        error.httpStatus = res.status;
+        throw error;
+      }
+      // 返回 data 字段
+      return responseData.data;
+    }
+    
+    // 旧格式兼容
+    if (!res.ok) {
+      const error = new Error(responseData.message || responseData.error || `Upload failed with status ${res.status}`);
+      error.status = res.status;
+      error.body = responseData;
+      throw error;
+    }
+    
+    return responseData;
+  });
 }
 
 export { API_BASE };

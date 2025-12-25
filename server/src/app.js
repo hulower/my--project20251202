@@ -1,8 +1,11 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 
 const healthRoutes = require('./routes/healthRoutes');
 const postRoutes = require('./routes/postRoutes');
+const userRoutes = require('./routes/userRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 
 function createApp() {
   const app = express();
@@ -17,19 +20,38 @@ function createApp() {
   app.use(cors(corsOptions));
   app.use(express.json());
 
+  // 静态文件服务 - 提供上传文件的访问
+  app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
   // 健康檢查 / 基礎接口
   app.use('/api', healthRoutes);
 
   // 博客相關接口
   app.use('/api/posts', postRoutes);
 
+  // 用户相关接口
+  app.use('/api/users', userRoutes);
+
+  // 文件上传接口
+  app.use('/api/upload', uploadRoutes);
+
   // 統一錯誤處理
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {
-    console.error('Unhandled error:', err);
+    console.error('❌ 错误:', err);
+    
+    // 根据错误类型设置状态码
     const statusCode = err.statusCode || 500;
+    const code = statusCode;
+    const message = err.message || 'Internal Server Error';
+    
+    // 返回统一格式的错误响应
     res.status(statusCode).json({
-      error: err.message || 'Internal Server Error',
+      code,
+      success: false,
+      message,
+      data: null,
+      timestamp: Date.now()
     });
   });
 

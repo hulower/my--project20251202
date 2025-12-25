@@ -1,26 +1,96 @@
 import { Link } from 'react-router-dom';
+import { Home, BookOpen, Sparkles } from 'lucide-react';
 import './App.css';
 import AppRoutes from './routes/AppRoutes';
 
 function App() {
+  const navLinkStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    color: '#334155',
+    textDecoration: 'none',
+    padding: '0.5rem 1rem',
+    borderRadius: '8px',
+    fontSize: '15px',
+    fontWeight: '500',
+    letterSpacing: '0.3px',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif',
+    transition: 'all 0.2s ease',
+  };
+
   return (
     <>
-      <nav
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '1rem',
-          padding: '1rem',
-          backgroundColor: '#20232a',
-        }}
-      >
-        <Link to="/" style={{ color: '#61dafb', textDecoration: 'none' }}>
-          首頁
-        </Link>
-        <Link to="/blog" style={{ color: '#61dafb', textDecoration: 'none' }}>
-          個人博客
-        </Link>
-      </nav>
+             <nav
+               style={{
+                 position: 'fixed',
+                 top: 0,
+                 left: 0,
+                 right: 0,
+                 display: 'flex',
+                 justifyContent: 'center',
+                 alignItems: 'center',
+                 gap: '0.5rem',
+                 padding: '0.75rem 1rem',
+                 backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                 backdropFilter: 'blur(10px)',
+                 zIndex: 1000,
+                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                 borderBottom: '1px solid rgba(226, 232, 240, 0.8)',
+               }}
+             >
+               <Link 
+                 to="/" 
+                 style={navLinkStyle}
+                 onMouseEnter={(e) => {
+                   e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.08)';
+                   e.currentTarget.style.color = '#0f172a';
+                   e.currentTarget.style.transform = 'translateY(-1px)';
+                 }}
+                 onMouseLeave={(e) => {
+                   e.currentTarget.style.backgroundColor = 'transparent';
+                   e.currentTarget.style.color = '#334155';
+                   e.currentTarget.style.transform = 'translateY(0)';
+                 }}
+               >
+                 <Home size={18} strokeWidth={2.5} />
+                 <span>首页</span>
+               </Link>
+               <Link 
+                 to="/blog" 
+                 style={navLinkStyle}
+                 onMouseEnter={(e) => {
+                   e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.08)';
+                   e.currentTarget.style.color = '#0f172a';
+                   e.currentTarget.style.transform = 'translateY(-1px)';
+                 }}
+                 onMouseLeave={(e) => {
+                   e.currentTarget.style.backgroundColor = 'transparent';
+                   e.currentTarget.style.color = '#334155';
+                   e.currentTarget.style.transform = 'translateY(0)';
+                 }}
+               >
+                 <BookOpen size={18} strokeWidth={2.5} />
+                 <span>个人博客</span>
+               </Link>
+               <Link 
+                 to="/particles" 
+                 style={navLinkStyle}
+                 onMouseEnter={(e) => {
+                   e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.08)';
+                   e.currentTarget.style.color = '#0f172a';
+                   e.currentTarget.style.transform = 'translateY(-1px)';
+                 }}
+                 onMouseLeave={(e) => {
+                   e.currentTarget.style.backgroundColor = 'transparent';
+                   e.currentTarget.style.color = '#334155';
+                   e.currentTarget.style.transform = 'translateY(0)';
+                 }}
+               >
+                 <Sparkles size={18} strokeWidth={2.5} />
+                 <span>粒子</span>
+               </Link>
+             </nav>
       <AppRoutes />
     </>
   );

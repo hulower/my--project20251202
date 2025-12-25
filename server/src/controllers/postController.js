@@ -1,56 +1,84 @@
-const postService = require('../services/postService');
+/**
+ * ============================================
+ * 文件名：server/src/controllers/postController.js
+ * 作用：控制器层 (Controller) - 博客文章（企业级规范版本）
+ * ============================================
+ */
 
+const postService = require('../services/postService');
+const Response = require('../utils/response');
+
+/**
+ * 获取所有文章
+ * GET /api/posts
+ */
 async function listPosts(req, res, next) {
   try {
-    console.log('Received request: GET /api/posts');
+    console.log('📥 收到请求: GET /api/posts');
     const posts = await postService.getAllPosts();
-    res.json(posts);
+    Response.success(res, posts, '获取文章列表成功');
   } catch (err) {
     next(err);
   }
 }
 
+/**
+ * 根据 ID 获取单篇文章
+ * GET /api/posts/:id
+ */
 async function getPost(req, res, next) {
   try {
     const id = Number(req.params.id);
-    console.log('Received request: GET /api/posts/:id', id);
+    console.log('📥 收到请求: GET /api/posts/:id', { id });
+    
     const post = await postService.getPostById(id);
-    if (!post) {
-      return res.status(404).json({ error: 'Post not found' });
-    }
-    res.json(post);
+    Response.success(res, post, '获取文章成功');
   } catch (err) {
     next(err);
   }
 }
 
+/**
+ * 创建新文章
+ * POST /api/posts
+ */
 async function createPost(req, res, next) {
   try {
-    console.log('Received request: POST /api/posts', req.body);
+    console.log('📥 收到请求: POST /api/posts', req.body);
     const created = await postService.createPost(req.body);
-    res.status(201).json(created);
+    Response.created(res, created, '文章创建成功');
   } catch (err) {
     next(err);
   }
 }
 
+/**
+ * 更新文章
+ * PUT /api/posts/:id
+ */
 async function updatePost(req, res, next) {
   try {
     const id = Number(req.params.id);
-    console.log('Received request: PUT /api/posts/:id', id, req.body);
+    console.log('📥 收到请求: PUT /api/posts/:id', { id, body: req.body });
+    
     const updated = await postService.updatePost(id, req.body);
-    res.json(updated);
+    Response.success(res, updated, '文章更新成功');
   } catch (err) {
     next(err);
   }
 }
 
+/**
+ * 删除文章
+ * DELETE /api/posts/:id
+ */
 async function deletePost(req, res, next) {
   try {
     const id = Number(req.params.id);
-    console.log('Received request: DELETE /api/posts/:id', id);
-    const deleted = await postService.removePost(id);
-    res.json(deleted);
+    console.log('📥 收到请求: DELETE /api/posts/:id', { id });
+    
+    const deleted = await postService.deletePost(id);
+    Response.success(res, deleted, '文章删除成功');
   } catch (err) {
     next(err);
   }
@@ -63,5 +91,4 @@ module.exports = {
   updatePost,
   deletePost,
 };
-
 

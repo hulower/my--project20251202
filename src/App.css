@@ -14,7 +14,9 @@
 }
 
 .App-header {
-  background-color: #282c34;
+  /* 移除背景色，让 body 的背景图片显示 */
+  backdrop-filter: blur(8px);
+  background-color: rgba(40, 44, 52, 0.85);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
