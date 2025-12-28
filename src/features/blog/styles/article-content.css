@@ -1,0 +1,226 @@
+/**
+ * 文章内容样式优化
+ * 提供更好的阅读体验
+ */
+
+.article-content {
+  font-family: 'font-body', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.9;
+  letter-spacing: 0.02em;
+  color: hsl(var(--foreground));
+}
+
+/* 标题样式 */
+.article-content h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  color: hsl(var(--foreground));
+}
+
+.article-content h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  margin-top: 2rem;
+  margin-bottom: 0.875rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.article-content h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: hsl(var(--foreground));
+}
+
+.article-content h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.5;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: hsl(var(--foreground));
+}
+
+/* 段落样式 */
+.article-content p {
+  margin-bottom: 1.25rem;
+  text-align: justify;
+}
+
+/* 链接样式 */
+.article-content a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: all 0.2s;
+}
+
+.article-content a:hover {
+  color: hsl(var(--primary));
+  text-decoration-thickness: 2px;
+}
+
+/* 引用块样式 */
+.article-content blockquote {
+  margin: 1.5rem 0;
+  padding: 1rem 1.5rem;
+  border-left: 4px solid hsl(var(--primary));
+  background: hsl(var(--muted) / 0.3);
+  border-radius: 0 0.5rem 0.5rem 0;
+  font-style: italic;
+}
+
+.article-content blockquote p {
+  margin-bottom: 0;
+}
+
+/* 列表样式 */
+.article-content ul,
+.article-content ol {
+  margin: 1.25rem 0;
+  padding-left: 2rem;
+}
+
+.article-content li {
+  margin-bottom: 0.5rem;
+  line-height: 1.8;
+}
+
+.article-content ul li {
+  list-style-type: disc;
+}
+
+.article-content ol li {
+  list-style-type: decimal;
+}
+
+/* 代码样式 */
+.article-content code {
+  padding: 0.2em 0.4em;
+  font-size: 0.9em;
+  background: hsl(var(--muted));
+  border-radius: 0.25rem;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.article-content pre {
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  background: hsl(var(--muted));
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  border: 1px solid hsl(var(--border));
+}
+
+.article-content pre code {
+  padding: 0;
+  background: transparent;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+/* 表格样式 */
+.article-content table {
+  width: 100%;
+  margin: 1.5rem 0;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border));
+}
+
+.article-content th {
+  background: hsl(var(--muted));
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 2px solid hsl(var(--border));
+}
+
+.article-content td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.article-content tr:last-child td {
+  border-bottom: none;
+}
+
+.article-content tr:hover {
+  background: hsl(var(--muted) / 0.3);
+}
+
+/* 分割线样式 */
+.article-content hr {
+  margin: 2rem 0;
+  border: none;
+  border-top: 2px solid hsl(var(--border));
+}
+
+/* 图片样式 */
+.article-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 1.5rem auto;
+  display: block;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+/* 强调样式 */
+.article-content strong {
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+
+.article-content em {
+  font-style: italic;
+}
+
+/* 删除线 */
+.article-content del {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+  .article-content {
+    font-size: 1rem;
+    line-height: 1.8;
+  }
+
+  .article-content h1 {
+    font-size: 1.75rem;
+  }
+
+  .article-content h2 {
+    font-size: 1.5rem;
+  }
+
+  .article-content h3 {
+    font-size: 1.25rem;
+  }
+
+  .article-content h4 {
+    font-size: 1.125rem;
+  }
+
+  .article-content pre {
+    font-size: 0.813rem;
+  }
+}
+

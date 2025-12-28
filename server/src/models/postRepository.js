@@ -47,9 +47,70 @@ async function listPosts() {
   // 执行查询
   // db.query() 返回 [rows, fields]，我们只需要 rows（查询结果）
   const [rows] = await db.query(
-    'SELECT id, title, content, created_at as createdAt, updated_at as updatedAt FROM posts ORDER BY created_at DESC'
+    'SELECT id, title, slug, content, category, music_id as musicId, created_at as createdAt, updated_at as updatedAt FROM posts ORDER BY created_at DESC'
   );
   return rows;
+}
+
+/**
+ * 分页查询文章列表（支持分类筛选）
+ * @param {Object} params - 查询参数
+ * @param {number} params.page - 页码（从 1 开始）
+ * @param {number} params.pageSize - 每页数量
+ * @param {string} params.category - 分类筛选（可选）
+ * @returns {Promise<Object>} 分页结果
+ * 
+ * 返回格式：
+ * {
+ *   list: [...],
+ *   pagination: {
+ *     total: 100,
+ *     page: 1,
+ *     pageSize: 10,
+ *     totalPages: 10
+ *   }
+ * }
+ */
+async function listPostsWithPagination({ page = 1, pageSize = 10, category = null }) {
+  // 1. 构建 WHERE 条件
+  let whereClause = '';
+  const queryParams = [];
+  
+  if (category) {
+    whereClause = 'WHERE category = ?';
+    queryParams.push(category);
+  }
+  
+  // 2. 查询总数
+  const countSql = `SELECT COUNT(*) as total FROM posts ${whereClause}`;
+  const [countResult] = await db.query(countSql, queryParams);
+  const total = countResult[0].total;
+  
+  // 3. 计算分页参数
+  const totalPages = Math.ceil(total / pageSize);
+  const offset = (page - 1) * pageSize;
+  
+  // 4. 查询当前页数据
+  const dataSql = `
+    SELECT id, title, slug, content, category, music_id as musicId, created_at as createdAt, updated_at as updatedAt 
+    FROM posts 
+    ${whereClause}
+    ORDER BY created_at DESC 
+    LIMIT ? OFFSET ?
+  `;
+  const dataParams = [...queryParams, pageSize, offset];
+  const [rows] = await db.query(dataSql, dataParams);
+  
+  // 5. 返回分页结果
+  return {
+    list: rows,
+    pagination: {
+      total,
+      page,
+      pageSize,
+      totalPages
+    }
+  };
 }
 
 /**
@@ -67,7 +128,7 @@ async function listPosts() {
  */
 async function findPostById(id) {
   const [rows] = await db.query(
-    'SELECT id, title, content, created_at as createdAt, updated_at as updatedAt FROM posts WHERE id = ?',
+    'SELECT id, title, slug, content, category, music_id as musicId, created_at as createdAt, updated_at as updatedAt FROM posts WHERE id = ?',
     [id] // 参数数组，对应 SQL 中的 ?
   );
   
@@ -75,6 +136,44 @@ async function findPostById(id) {
   // rows[0] 是第一条（也是唯一一条）
   // 如果没有结果，rows[0] 是 undefined，返回 null
   return rows[0] || null;
+}
+
+/**
+ * 根据 slug 查询单篇文章
+ * @param {string} slug - 文章 slug（URL 友好的唯一标识符）
+ * @returns {Promise<Object|null>} 文章对象，如果不存在返回 null
+ * 
+ * 什么是 slug？
+ * - slug 是 URL 友好的唯一标识符，例如："my-first-post"
+ * - 比数字 ID 更易读，SEO 友好
+ * - 例如：/blog/post/my-first-post（slug）比 /blog/post/123（ID）更友好
+ */
+async function findPostBySlug(slug) {
+  const [rows] = await db.query(
+    'SELECT id, title, slug, content, category, music_id as musicId, created_at as createdAt, updated_at as updatedAt FROM posts WHERE slug = ?',
+    [slug]
+  );
+  
+  return rows[0] || null;
+}
+
+/**
+ * 检查 slug 是否已存在
+ * @param {string} slug - 要检查的 slug
+ * @param {number} excludeId - 排除的文章 ID（用于更新时检查，排除自己）
+ * @returns {Promise<boolean>} 如果存在返回 true，否则返回 false
+ */
+async function checkSlugExists(slug, excludeId = null) {
+  let sql = 'SELECT COUNT(*) as count FROM posts WHERE slug = ?';
+  const params = [slug];
+  
+  if (excludeId) {
+    sql += ' AND id != ?';
+    params.push(excludeId);
+  }
+  
+  const [rows] = await db.query(sql, params);
+  return rows[0].count > 0;
 }
 
 // ========================================
@@ -85,11 +184,13 @@ async function findPostById(id) {
  * 创建新文章
  * @param {Object} params - 文章信息
  * @param {string} params.title - 文章标题
+ * @param {string} params.slug - 文章 slug（URL 友好的唯一标识符）
  * @param {string} params.content - 文章内容
+ * @param {string} params.category - 文章分类（技术博客、说说、学习笔记）
  * @returns {Promise<Object>} 新创建的文章对象（包含自动生成的 id 和时间戳）
  * 
  * SQL 说明：
- * - INSERT INTO posts (...) VALUES (?, ?): 插入新记录
+ * - INSERT INTO posts (...) VALUES (?, ?, ?, ?): 插入新记录
  * - created_at 和 updated_at 由数据库自动生成（默认值 CURRENT_TIMESTAMP）
  * 
  * 工作流程：
@@ -98,11 +199,11 @@ async function findPostById(id) {
  * 3. 再查询一次，获取完整的文章信息（包括时间戳）
  * 4. 返回完整的文章对象
  */
-async function createPost({ title, content }) {
+async function createPost({ title, slug, content, category = '技术博客', musicId = null }) {
   // 执行插入操作
   const [result] = await db.query(
-    'INSERT INTO posts (title, content) VALUES (?, ?)',
-    [title, content]
+    'INSERT INTO posts (title, slug, content, category, music_id) VALUES (?, ?, ?, ?, ?)',
+    [title, slug, content, category, musicId]
   );
   
   // result.insertId: 数据库自动生成的文章 ID
@@ -121,7 +222,9 @@ async function createPost({ title, content }) {
  * @param {number} id - 文章 ID
  * @param {Object} params - 要更新的字段
  * @param {string} params.title - 新标题
+ * @param {string} params.slug - 新 slug
  * @param {string} params.content - 新内容
+ * @param {string} params.category - 文章分类（技术博客、说说、学习笔记）
  * @returns {Promise<Object|null>} 更新后的文章对象，如果文章不存在返回 null
  * 
  * SQL 说明：
@@ -133,11 +236,11 @@ async function createPost({ title, content }) {
  * - 如果文章存在并更新成功，affectedRows = 1
  * - 如果文章不存在，affectedRows = 0
  */
-async function updatePost(id, { title, content }) {
+async function updatePost(id, { title, slug, content, category, musicId }) {
   // 执行更新操作
   const [result] = await db.query(
-    'UPDATE posts SET title = ?, content = ? WHERE id = ?',
-    [title, content, id]
+    'UPDATE posts SET title = ?, slug = ?, content = ?, category = ?, music_id = ? WHERE id = ?',
+    [title, slug, content, category, musicId, id]
   );
   
   // 检查是否更新成功
@@ -187,10 +290,13 @@ async function deletePost(id) {
  * 只需要调用相应的函数，就能得到数据
  */
 module.exports = {
-  listPosts,      // 查询所有
-  findPostById,   // 查询单个
-  createPost,     // 创建
-  updatePost,     // 更新
-  deletePost,     // 删除
+  listPosts,                  // 查询所有（不分页）
+  listPostsWithPagination,    // 查询所有（分页）
+  findPostById,               // 通过 ID 查询单个
+  findPostBySlug,             // 通过 slug 查询单个
+  checkSlugExists,            // 检查 slug 是否存在
+  createPost,                 // 创建
+  updatePost,                 // 更新
+  deletePost,                 // 删除
 };
 

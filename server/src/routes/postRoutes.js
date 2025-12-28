@@ -50,6 +50,25 @@ const router = express.Router();
 router.get('/', postController.listPosts);
 
 /**
+ * 根据 slug 查询单篇文章
+ * @route GET /api/posts/slug/:slug
+ * @description 根据 slug（URL 友好的唯一标识符）获取单篇文章
+ * @param {string} slug - 文章 slug（路径参数）
+ * @access Public
+ * 
+ * 完整 URL：http://localhost:5001/api/posts/slug/my-first-post
+ * 
+ * 为什么要加 /slug/ 前缀？
+ * - 避免和数字 ID 路由冲突
+ * - 明确标识这是通过 slug 查询
+ * - 让 API 更清晰易懂
+ * 
+ * ⚠️ 注意：这个路由必须放在 /:id 路由之前
+ * 如果放在后面，/slug/xxx 会被 /:id 路由拦截（把 "slug" 当作 ID）
+ */
+router.get('/slug/:slug', postController.getPostBySlug);
+
+/**
  * 查询单篇文章
  * @route GET /api/posts/:id
  * @description 根据 ID 获取单篇文章

@@ -34,11 +34,82 @@ const postRepository = require('../models/postRepository');
 class PostService {
   
   // ========================================
+  // Slug 生成与验证
+  // ========================================
+  
+  /**
+   * 生成 URL 友好的 slug
+   * @param {string} title - 文章标题
+   * @returns {string} slug
+   * 
+   * 生成规则：
+   * 1. 转为小写
+   * 2. 移除特殊字符
+   * 3. 空格和连续的特殊字符替换为单个连字符
+   * 4. 如果标题是纯中文，使用时间戳生成唯一 slug
+   * 
+   * 示例：
+   * "My First Post!" -> "my-first-post"
+   * "React 入门教程" -> "react-ru-men-jiao-cheng" 或 "post-1234567890"
+   */
+  generateSlug(title) {
+    if (!title) {
+      return `post-${Date.now()}`;
+    }
+    
+    let slug = title
+      .toLowerCase()
+      .trim()
+      // 将空格和常见标点符号替换为连字符
+      .replace(/[\s\t\n\r，。！？、；：""''（）《》【】…—·]+/g, '-')
+      // 移除不安全的字符
+      .replace(/[^\w\u4e00-\u9fa5-]/g, '')
+      // 移除连续的连字符
+      .replace(/-+/g, '-')
+      // 移除首尾的连字符
+      .replace(/^-+|-+$/g, '');
+    
+    // 如果生成的 slug 为空或只包含中文（URL 不友好），使用时间戳
+    if (!slug || /^[\u4e00-\u9fa5]+$/.test(slug)) {
+      slug = `post-${Date.now()}`;
+    }
+    
+    // 限制长度（最多 200 个字符）
+    if (slug.length > 200) {
+      slug = slug.substring(0, 200);
+    }
+    
+    return slug;
+  }
+  
+  /**
+   * 确保 slug 唯一
+   * @param {string} slug - 原始 slug
+   * @param {number} excludeId - 排除的文章 ID（用于更新时）
+   * @returns {Promise<string>} 唯一的 slug
+   * 
+   * 如果 slug 已存在，会在后面添加数字后缀
+   * 例如：my-post -> my-post-2 -> my-post-3
+   */
+  async ensureUniqueSlug(slug, excludeId = null) {
+    let uniqueSlug = slug;
+    let counter = 2;
+    
+    // 检查 slug 是否已存在，如果存在则添加数字后缀
+    while (await postRepository.checkSlugExists(uniqueSlug, excludeId)) {
+      uniqueSlug = `${slug}-${counter}`;
+      counter++;
+    }
+    
+    return uniqueSlug;
+  }
+  
+  // ========================================
   // 查询业务
   // ========================================
   
   /**
-   * 获取所有文章
+   * 获取所有文章（不分页，保留用于向后兼容）
    * @returns {Promise<Array>} 文章列表
    * 
    * 业务逻辑：
@@ -47,6 +118,47 @@ class PostService {
    */
   async getAllPosts() {
     return await postRepository.listPosts();
+  }
+
+  /**
+   * 分页查询文章列表（支持分类筛选）
+   * @param {Object} params - 查询参数
+   * @param {number} params.page - 页码（从 1 开始）
+   * @param {number} params.pageSize - 每页数量
+   * @param {string} params.category - 分类筛选（可选）
+   * @returns {Promise<Object>} 分页结果
+   * 
+   * 业务逻辑：
+   * 1. 验证分页参数
+   * 2. 如果提供了分类参数，验证分类是否合法
+   * 3. 调用 Repository 获取分页数据
+   */
+  async getPostsWithPagination({ page = 1, pageSize = 10, category = null }) {
+    // 验证分页参数
+    if (page < 1) {
+      const error = new Error('页码必须大于 0');
+      error.statusCode = 400;
+      throw error;
+    }
+    
+    if (pageSize < 1 || pageSize > 100) {
+      const error = new Error('每页数量必须在 1-100 之间');
+      error.statusCode = 400;
+      throw error;
+    }
+    
+    // 如果提供了分类，验证是否合法
+    if (category) {
+      const validCategories = ['技术博客', '说说', '学习笔记'];
+      if (!validCategories.includes(category)) {
+        const error = new Error(`分类必须是以下之一：${validCategories.join('、')}`);
+        error.statusCode = 400;
+        throw error;
+      }
+    }
+    
+    // 调用 Repository 获取分页数据
+    return await postRepository.listPostsWithPagination({ page, pageSize, category });
   }
 
   /**
@@ -72,6 +184,30 @@ class PostService {
     
     return post;
   }
+  
+  /**
+   * 根据 slug 获取单篇文章
+   * @param {string} slug - 文章 slug
+   * @returns {Promise<Object>} 文章对象
+   * @throws {Error} 如果文章不存在，抛出 404 错误
+   * 
+   * 业务逻辑：
+   * 1. 调用 Repository 通过 slug 查询文章
+   * 2. 如果文章不存在，抛出 404 错误
+   * 3. 返回文章对象
+   */
+  async getPostBySlug(slug) {
+    const post = await postRepository.findPostBySlug(slug);
+    
+    // 文章不存在时的处理
+    if (!post) {
+      const error = new Error('文章不存在');
+      error.statusCode = 404;
+      throw error;
+    }
+    
+    return post;
+  }
 
   // ========================================
   // 创建业务
@@ -82,20 +218,24 @@ class PostService {
    * @param {Object} params - 文章信息
    * @param {string} params.title - 文章标题
    * @param {string} params.content - 文章内容
+   * @param {string} params.category - 文章分类（技术博客、说说、学习笔记）
+   * @param {string} params.slug - 自定义 slug（可选，不提供则自动生成）
    * @returns {Promise<Object>} 新创建的文章对象
    * @throws {Error} 如果标题或内容为空，抛出 400 错误
    * 
    * 业务逻辑：
    * 1. 验证标题和内容不能为空
-   * 2. 如果验证失败，抛出 400 错误（Bad Request）
-   * 3. 如果验证通过，调用 Repository 创建文章
+   * 2. 验证分类是否合法
+   * 3. 生成或验证 slug
+   * 4. 确保 slug 唯一
+   * 5. 调用 Repository 创建文章
    * 
    * 为什么要在这里验证？
    * - Repository 不关心业务规则，只负责存数据
    * - Service 负责确保数据符合业务要求
    * - 这样如果业务规则改变（比如标题不能超过 100 字），只需要改 Service
    */
-  async createPost({ title, content }) {
+  async createPost({ title, content, category = '技术博客', slug = null, musicId = null }) {
     // 数据验证
     if (!title || !content) {
       const error = new Error('标题和内容不能为空');
@@ -103,8 +243,22 @@ class PostService {
       throw error;
     }
     
+    // 验证分类是否合法
+    const validCategories = ['技术博客', '说说', '学习笔记'];
+    if (!validCategories.includes(category)) {
+      const error = new Error(`分类必须是以下之一：${validCategories.join('、')}`);
+      error.statusCode = 400;
+      throw error;
+    }
+    
+    // 生成或使用自定义 slug
+    let finalSlug = slug || this.generateSlug(title);
+    
+    // 确保 slug 唯一
+    finalSlug = await this.ensureUniqueSlug(finalSlug);
+    
     // 验证通过，调用 Repository 创建文章
-    return await postRepository.createPost({ title, content });
+    return await postRepository.createPost({ title, slug: finalSlug, content, category, musicId });
   }
 
   // ========================================
@@ -117,21 +271,67 @@ class PostService {
    * @param {Object} params - 要更新的字段
    * @param {string} params.title - 新标题
    * @param {string} params.content - 新内容
+   * @param {string} params.category - 文章分类（技术博客、说说、学习笔记）
+   * @param {string} params.slug - 自定义 slug（可选）
    * @returns {Promise<Object>} 更新后的文章对象
    * @throws {Error} 如果文章不存在，抛出 404 错误
    * 
    * 业务逻辑：
-   * 1. 调用 Repository 更新文章
-   * 2. 如果返回 null（文章不存在），抛出 404 错误
-   * 3. 否则返回更新后的文章
+   * 1. 验证分类是否合法（如果提供了）
+   * 2. 如果标题改变，重新生成 slug（或使用自定义 slug）
+   * 3. 确保 slug 唯一
+   * 4. 调用 Repository 更新文章
+   * 5. 如果返回 null（文章不存在），抛出 404 错误
+   * 6. 否则返回更新后的文章
    * 
    * 注意：这里没有验证 title 和 content 是否为空
    * 如果需要，可以添加和 createPost 一样的验证逻辑
    */
-  async updatePost(id, { title, content }) {
-    const updated = await postRepository.updatePost(id, { title, content });
+  async updatePost(id, { title, content, category, slug = null, musicId }) {
+    // 如果提供了分类，验证是否合法
+    if (category) {
+      const validCategories = ['技术博客', '说说', '学习笔记'];
+      if (!validCategories.includes(category)) {
+        const error = new Error(`分类必须是以下之一：${validCategories.join('、')}`);
+        error.statusCode = 400;
+        throw error;
+      }
+    }
     
-    // 文章不存在时的处理
+    // 获取原文章信息（用于检查标题是否改变）
+    const existingPost = await postRepository.findPostById(id);
+    if (!existingPost) {
+      const error = new Error('文章不存在');
+      error.statusCode = 404;
+      throw error;
+    }
+    
+    // 确定最终的 slug
+    let finalSlug = existingPost.slug; // 默认保持原 slug
+    
+    // 如果提供了自定义 slug，使用自定义 slug
+    if (slug) {
+      finalSlug = slug;
+    }
+    // 如果标题改变，重新生成 slug
+    else if (title && title !== existingPost.title) {
+      finalSlug = this.generateSlug(title);
+    }
+    
+    // 如果 slug 改变了，确保新 slug 唯一
+    if (finalSlug !== existingPost.slug) {
+      finalSlug = await this.ensureUniqueSlug(finalSlug, id);
+    }
+    
+    const updated = await postRepository.updatePost(id, { 
+      title: title || existingPost.title,
+      slug: finalSlug,
+      content: content || existingPost.content,
+      category: category || existingPost.category,
+      musicId: musicId !== undefined ? musicId : existingPost.musicId
+    });
+    
+    // 文章不存在时的处理（理论上不会走到这里，因为前面已经检查过）
     if (!updated) {
       const error = new Error('文章不存在');
       error.statusCode = 404;

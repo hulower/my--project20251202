@@ -6,6 +6,7 @@ const healthRoutes = require('./routes/healthRoutes');
 const postRoutes = require('./routes/postRoutes');
 const userRoutes = require('./routes/userRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const musicRoutes = require('./routes/musicRoutes');
 
 function createApp() {
   const app = express();
@@ -18,7 +19,8 @@ function createApp() {
     credentials: true,
   };
   app.use(cors(corsOptions));
-  app.use(express.json());
+  app.use(express.json({ limit: '100mb' })); // 增加 JSON body 大小限制
+  app.use(express.urlencoded({ limit: '100mb', extended: true })); // 增加 URL-encoded body 大小限制
 
   // 静态文件服务 - 提供上传文件的访问
   app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -34,6 +36,9 @@ function createApp() {
 
   // 文件上传接口
   app.use('/api/upload', uploadRoutes);
+
+  // 音乐相关接口
+  app.use('/api/music', musicRoutes);
 
   // 統一錯誤處理
   // eslint-disable-next-line no-unused-vars

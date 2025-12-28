@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Home, BookOpen, Sparkles } from 'lucide-react';
+import { Home, BookOpen, Sparkles, MessageCircle, BookMarked, Music } from 'lucide-react';
 import './App.css';
 import AppRoutes from './routes/AppRoutes';
 
@@ -56,41 +56,92 @@ function App() {
                  <Home size={18} strokeWidth={2.5} />
                  <span>首页</span>
                </Link>
-               <Link 
-                 to="/blog" 
-                 style={navLinkStyle}
-                 onMouseEnter={(e) => {
-                   e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.08)';
-                   e.currentTarget.style.color = '#0f172a';
-                   e.currentTarget.style.transform = 'translateY(-1px)';
-                 }}
-                 onMouseLeave={(e) => {
-                   e.currentTarget.style.backgroundColor = 'transparent';
-                   e.currentTarget.style.color = '#334155';
-                   e.currentTarget.style.transform = 'translateY(0)';
-                 }}
-               >
-                 <BookOpen size={18} strokeWidth={2.5} />
-                 <span>个人博客</span>
-               </Link>
-               <Link 
-                 to="/particles" 
-                 style={navLinkStyle}
-                 onMouseEnter={(e) => {
-                   e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.08)';
-                   e.currentTarget.style.color = '#0f172a';
-                   e.currentTarget.style.transform = 'translateY(-1px)';
-                 }}
-                 onMouseLeave={(e) => {
-                   e.currentTarget.style.backgroundColor = 'transparent';
-                   e.currentTarget.style.color = '#334155';
-                   e.currentTarget.style.transform = 'translateY(0)';
-                 }}
-               >
-                 <Sparkles size={18} strokeWidth={2.5} />
-                 <span>粒子</span>
-               </Link>
-             </nav>
+              <Link 
+                to="/blog" 
+                style={navLinkStyle}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.08)';
+                  e.currentTarget.style.color = '#0f172a';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#334155';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <BookOpen size={18} strokeWidth={2.5} />
+                <span>个人博客</span>
+              </Link>
+              <Link 
+                to="/blog/mood" 
+                style={navLinkStyle}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.08)';
+                  e.currentTarget.style.color = '#0f172a';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#334155';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <MessageCircle size={18} strokeWidth={2.5} />
+                <span>说说</span>
+              </Link>
+              <Link 
+                to="/blog/notes" 
+                style={navLinkStyle}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.08)';
+                  e.currentTarget.style.color = '#0f172a';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#334155';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <BookMarked size={18} strokeWidth={2.5} />
+                <span>学习笔记</span>
+              </Link>
+             <Link 
+               to="/particles" 
+               style={navLinkStyle}
+               onMouseEnter={(e) => {
+                 e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.08)';
+                 e.currentTarget.style.color = '#0f172a';
+                 e.currentTarget.style.transform = 'translateY(-1px)';
+               }}
+               onMouseLeave={(e) => {
+                 e.currentTarget.style.backgroundColor = 'transparent';
+                 e.currentTarget.style.color = '#334155';
+                 e.currentTarget.style.transform = 'translateY(0)';
+               }}
+             >
+               <Sparkles size={18} strokeWidth={2.5} />
+               <span>粒子</span>
+             </Link>
+             <Link 
+               to="/music-manage" 
+               style={navLinkStyle}
+               onMouseEnter={(e) => {
+                 e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.08)';
+                 e.currentTarget.style.color = '#0f172a';
+                 e.currentTarget.style.transform = 'translateY(-1px)';
+               }}
+               onMouseLeave={(e) => {
+                 e.currentTarget.style.backgroundColor = 'transparent';
+                 e.currentTarget.style.color = '#334155';
+                 e.currentTarget.style.transform = 'translateY(0)';
+               }}
+             >
+               <Music size={18} strokeWidth={2.5} />
+               <span>音乐管理</span>
+             </Link>
+            </nav>
       <AppRoutes />
     </>
   );

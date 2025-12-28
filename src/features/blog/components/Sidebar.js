@@ -5,7 +5,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '../../../components/ui/avat
 import { Badge } from '../../../components/ui/badge';
 import { Separator } from '../../../components/ui/separator';
 import { Button } from '../../../components/ui/button';
-import { Home, Folder, Archive, Sparkles, Link2, User, Rss, Camera, Loader2 } from 'lucide-react';
+import { Home, Folder, Archive, Sparkles, Link2, User, Rss, Camera, Loader2, Github, Mail, ChevronDown, ChevronRight } from 'lucide-react';
 import * as userApi from '../../../api/userApi';
 import { API_BASE } from '../../../api/httpClient';
 
@@ -16,6 +16,21 @@ function Sidebar({ stats = { posts: 0, categories: 0, tags: 0 } }) {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('我的博客');
   const [userBio, setUserBio] = useState('趁年轻，做自己想做的！');
+  
+  // 可折叠列表的展开状态
+  const [expandedSections, setExpandedSections] = useState({
+    anime: false,
+    cities: false,
+    games: false,
+  });
+
+  // 切换展开/收起
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
 
   // 组件加载时从后端获取用户信息
   useEffect(() => {
@@ -175,59 +190,185 @@ function Sidebar({ stats = { posts: 0, categories: 0, tags: 0 } }) {
         <Separator />
 
         <CardContent className="pt-4">
-          {/* 统计信息 */}
-          <div className="grid grid-cols-3 gap-4 text-center mb-4">
-            <div>
-              <div 
-                className="text-2xl font-bold text-primary"
-                style={{ fontWeight: '700', letterSpacing: '-0.02em' }}
-              >
-                {stats.posts}
-              </div>
-              <div 
-                className="text-xs text-muted-foreground"
-                style={{ fontWeight: '500', letterSpacing: '0.02em' }}
-              >
-                归档
-              </div>
-            </div>
-            <div>
-              <div 
-                className="text-2xl font-bold text-primary"
-                style={{ fontWeight: '700', letterSpacing: '-0.02em' }}
-              >
-                {stats.categories}
-              </div>
-              <div 
-                className="text-xs text-muted-foreground"
-                style={{ fontWeight: '500', letterSpacing: '0.02em' }}
-              >
-                分类
-              </div>
-            </div>
-            <div>
-              <div 
-                className="text-2xl font-bold text-primary"
-                style={{ fontWeight: '700', letterSpacing: '-0.02em' }}
-              >
-                {stats.tags}
-              </div>
-              <div 
-                className="text-xs text-muted-foreground"
-                style={{ fontWeight: '500', letterSpacing: '0.02em' }}
-              >
-                标签
-              </div>
-            </div>
+          {/* 社交媒体链接 */}
+          <div className="flex justify-center gap-3 mb-4">
+            <a
+              href="https://github.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
+              title="GitHub"
+            >
+              <Github className="w-5 h-5" />
+            </a>
+            <a
+              href="https://weibo.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
+              title="微博"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.194 14.197c.478-1.256.443-2.335-.098-3.043-.49-.642-1.435-.936-2.642-.74-.191.031-.323.048-.405.058.035-.084.066-.168.093-.251.348-.982.392-1.83.124-2.385-.387-.804-1.493-1.142-2.928-.902-.742.124-1.547.399-2.318.789.022-.11.041-.222.057-.336.138-.995-.021-1.768-.448-2.173-.394-.373-.985-.485-1.67-.315-.684.17-1.386.513-1.975 1.017-.589.504-1.027 1.12-1.23 1.731-.204.611-.152 1.167.147 1.564.299.397.768.594 1.325.594.557 0 1.135-.163 1.643-.501-.144.446-.201.928-.152 1.426.057.577.227 1.133.503 1.641-.577-.17-1.155-.261-1.717-.261-1.842 0-3.459.796-4.556 2.02-1.097 1.224-1.523 2.747-1.194 4.175.329 1.428 1.365 2.596 2.84 3.197 1.475.601 3.288.613 5.044.031 1.756-.582 3.454-1.735 4.603-3.202 1.149-1.467 1.649-3.088 1.387-4.402-.148-.743-.522-1.376-1.048-1.847.744-.197 1.401-.063 1.759.457.316.459.34 1.175.068 2.051-.088.283-.041.59.124.822.165.232.435.367.722.367.344 0 .657-.175.835-.467z"/>
+              </svg>
+            </a>
+            <a
+              href="mailto:your-email@example.com"
+              className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
+              title="邮箱"
+            >
+              <Mail className="w-5 h-5" />
+            </a>
           </div>
 
           <Separator className="my-4" />
 
-          {/* RSS 订阅 */}
-          <Button variant="outline" className="w-full gap-2" size="sm">
-            <Rss className="w-4 h-4" />
-            RSS 订阅
-          </Button>
+          {/* 可折叠列表 - 最喜欢的动漫 */}
+          <div className="mb-3">
+            <button
+              onClick={() => toggleSection('anime')}
+              className="w-full flex items-center justify-between p-2 hover:bg-accent rounded-md transition-colors text-left"
+            >
+              <span 
+                className="text-sm font-medium flex items-center gap-2"
+                style={{ fontWeight: '500', letterSpacing: '0.01em' }}
+              >
+                最喜欢的动漫 📺
+              </span>
+              {expandedSections.anime ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
+              )}
+            </button>
+            {expandedSections.anime && (
+              <div className="mt-2 pl-4 space-y-1 text-sm text-muted-foreground">
+                <div 
+                  className="py-1"
+                  style={{ fontWeight: '400', letterSpacing: '0.01em' }}
+                >
+                  • 进击的巨人
+                </div>
+                <div 
+                  className="py-1"
+                  style={{ fontWeight: '400', letterSpacing: '0.01em' }}
+                >
+                  • 命运石之门
+                </div>
+                <div 
+                  className="py-1"
+                  style={{ fontWeight: '400', letterSpacing: '0.01em' }}
+                >
+                  • 钢之炼金术师
+                </div>
+                <div 
+                  className="py-1"
+                  style={{ fontWeight: '400', letterSpacing: '0.01em' }}
+                >
+                  • 紫罗兰永恒花园
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 可折叠列表 - 喜欢的城市 */}
+          <div className="mb-3">
+            <button
+              onClick={() => toggleSection('cities')}
+              className="w-full flex items-center justify-between p-2 hover:bg-accent rounded-md transition-colors text-left"
+            >
+              <span 
+                className="text-sm font-medium flex items-center gap-2"
+                style={{ fontWeight: '500', letterSpacing: '0.01em' }}
+              >
+                喜欢的城市 🏙️
+              </span>
+              {expandedSections.cities ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
+              )}
+            </button>
+            {expandedSections.cities && (
+              <div className="mt-2 pl-4 space-y-1 text-sm text-muted-foreground">
+                <div 
+                  className="py-1"
+                  style={{ fontWeight: '400', letterSpacing: '0.01em' }}
+                >
+                  • 东京，日本
+                </div>
+                <div 
+                  className="py-1"
+                  style={{ fontWeight: '400', letterSpacing: '0.01em' }}
+                >
+                  • 上海，中国
+                </div>
+                <div 
+                  className="py-1"
+                  style={{ fontWeight: '400', letterSpacing: '0.01em' }}
+                >
+                  • 巴黎，法国
+                </div>
+                <div 
+                  className="py-1"
+                  style={{ fontWeight: '400', letterSpacing: '0.01em' }}
+                >
+                  • 纽约，美国
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 可折叠列表 - 最喜欢的游戏 */}
+          <div className="mb-3">
+            <button
+              onClick={() => toggleSection('games')}
+              className="w-full flex items-center justify-between p-2 hover:bg-accent rounded-md transition-colors text-left"
+            >
+              <span 
+                className="text-sm font-medium flex items-center gap-2"
+                style={{ fontWeight: '500', letterSpacing: '0.01em' }}
+              >
+                最喜欢的游戏 🎮
+              </span>
+              {expandedSections.games ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
+              )}
+            </button>
+            {expandedSections.games && (
+              <div className="mt-2 pl-4 space-y-1 text-sm text-muted-foreground">
+                <div 
+                  className="py-1"
+                  style={{ fontWeight: '400', letterSpacing: '0.01em' }}
+                >
+                  • 塞尔达传说：旷野之息
+                </div>
+                <div 
+                  className="py-1"
+                  style={{ fontWeight: '400', letterSpacing: '0.01em' }}
+                >
+                  • 最后生还者
+                </div>
+                <div 
+                  className="py-1"
+                  style={{ fontWeight: '400', letterSpacing: '0.01em' }}
+                >
+                  • 巫师 3：狂猎
+                </div>
+                <div 
+                  className="py-1"
+                  style={{ fontWeight: '400', letterSpacing: '0.01em' }}
+                >
+                  • 艾尔登法环
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Separator className="my-4" />
+
         </CardContent>
       </Card>
 

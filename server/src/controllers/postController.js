@@ -9,14 +9,34 @@ const postService = require('../services/postService');
 const Response = require('../utils/response');
 
 /**
- * 获取所有文章
- * GET /api/posts
+ * 获取文章列表（支持分页和分类筛选）
+ * GET /api/posts?page=1&pageSize=10&category=说说
  */
 async function listPosts(req, res, next) {
   try {
-    console.log('📥 收到请求: GET /api/posts');
-    const posts = await postService.getAllPosts();
-    Response.success(res, posts, '获取文章列表成功');
+    const { page, pageSize, category } = req.query;
+    
+    console.log('📥 收到请求: GET /api/posts', { 
+      page, 
+      pageSize, 
+      category 
+    });
+    
+    // 如果有分页参数，使用分页查询
+    if (page || pageSize) {
+      const params = {
+        page: page ? parseInt(page) : 1,
+        pageSize: pageSize ? parseInt(pageSize) : 10,
+        category: category || null
+      };
+      
+      const result = await postService.getPostsWithPagination(params);
+      Response.success(res, result, '获取文章列表成功');
+    } else {
+      // 否则返回所有文章（向后兼容）
+      const posts = await postService.getAllPosts();
+      Response.success(res, posts, '获取文章列表成功');
+    }
   } catch (err) {
     next(err);
   }
@@ -32,6 +52,26 @@ async function getPost(req, res, next) {
     console.log('📥 收到请求: GET /api/posts/:id', { id });
     
     const post = await postService.getPostById(id);
+    Response.success(res, post, '获取文章成功');
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * 根据 slug 获取单篇文章
+ * GET /api/posts/slug/:slug
+ * 
+ * 示例：
+ * GET /api/posts/slug/my-first-post
+ * GET /api/posts/slug/react-tutorial
+ */
+async function getPostBySlug(req, res, next) {
+  try {
+    const slug = req.params.slug;
+    console.log('📥 收到请求: GET /api/posts/slug/:slug', { slug });
+    
+    const post = await postService.getPostBySlug(slug);
     Response.success(res, post, '获取文章成功');
   } catch (err) {
     next(err);
@@ -87,6 +127,7 @@ async function deletePost(req, res, next) {
 module.exports = {
   listPosts,
   getPost,
+  getPostBySlug,
   createPost,
   updatePost,
   deletePost,

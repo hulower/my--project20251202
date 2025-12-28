@@ -25,6 +25,22 @@ function success(res, data = null, message = '操作成功', code = 200) {
 }
 
 /**
+ * 创建成功响应 (201 Created)
+ * @param {Object} res - Express response 对象
+ * @param {*} data - 返回的数据
+ * @param {string} message - 提示信息
+ */
+function created(res, data = null, message = '创建成功') {
+  res.status(201).json({
+    code: 201,
+    success: true,
+    message,
+    data,
+    timestamp: Date.now()
+  });
+}
+
+/**
  * 失败响应
  * @param {Object} res - Express response 对象
  * @param {string} message - 错误信息
@@ -84,6 +100,7 @@ const CODE = {
 
 module.exports = {
   success,
+  created,
   error,
   paginated,
   CODE
