@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Home, BookOpen, Sparkles, MessageCircle, BookMarked, Music } from 'lucide-react';
 import './App.css';
 import AppRoutes from './routes/AppRoutes';
+import { Toaster } from './components/ui/toaster';
 
 function App() {
   const navLinkStyle = {
@@ -143,6 +144,7 @@ function App() {
              </Link>
             </nav>
       <AppRoutes />
+      <Toaster />
     </>
   );
 }

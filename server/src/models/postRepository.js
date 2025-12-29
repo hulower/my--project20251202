@@ -47,7 +47,7 @@ async function listPosts() {
   // 执行查询
   // db.query() 返回 [rows, fields]，我们只需要 rows（查询结果）
   const [rows] = await db.query(
-    'SELECT id, title, slug, content, category, music_id as musicId, created_at as createdAt, updated_at as updatedAt FROM posts ORDER BY created_at DESC'
+    'SELECT id, title, slug, content, category, cover_image as coverImage, music_id as musicId, created_at as createdAt, updated_at as updatedAt FROM posts ORDER BY created_at DESC'
   );
   return rows;
 }
@@ -92,7 +92,7 @@ async function listPostsWithPagination({ page = 1, pageSize = 10, category = nul
   
   // 4. 查询当前页数据
   const dataSql = `
-    SELECT id, title, slug, content, category, music_id as musicId, created_at as createdAt, updated_at as updatedAt 
+    SELECT id, title, slug, content, category, cover_image as coverImage, music_id as musicId, created_at as createdAt, updated_at as updatedAt 
     FROM posts 
     ${whereClause}
     ORDER BY created_at DESC 
@@ -128,7 +128,7 @@ async function listPostsWithPagination({ page = 1, pageSize = 10, category = nul
  */
 async function findPostById(id) {
   const [rows] = await db.query(
-    'SELECT id, title, slug, content, category, music_id as musicId, created_at as createdAt, updated_at as updatedAt FROM posts WHERE id = ?',
+    'SELECT id, title, slug, content, category, cover_image as coverImage, music_id as musicId, created_at as createdAt, updated_at as updatedAt FROM posts WHERE id = ?',
     [id] // 参数数组，对应 SQL 中的 ?
   );
   
@@ -150,7 +150,7 @@ async function findPostById(id) {
  */
 async function findPostBySlug(slug) {
   const [rows] = await db.query(
-    'SELECT id, title, slug, content, category, music_id as musicId, created_at as createdAt, updated_at as updatedAt FROM posts WHERE slug = ?',
+    'SELECT id, title, slug, content, category, cover_image as coverImage, music_id as musicId, created_at as createdAt, updated_at as updatedAt FROM posts WHERE slug = ?',
     [slug]
   );
   
@@ -280,6 +280,22 @@ async function deletePost(id) {
   return post;
 }
 
+/**
+ * 更新文章封面
+ * @param {number} id - 文章 ID
+ * @param {string} coverPath - 封面图片路径
+ * @returns {Promise<Object>} 更新后的文章对象
+ */
+async function updatePostCover(id, coverPath) {
+  await db.query(
+    'UPDATE posts SET cover_image = ? WHERE id = ?',
+    [coverPath, id]
+  );
+  
+  // 返回更新后的文章
+  return findPostById(id);
+}
+
 // ========================================
 // 导出所有函数
 // ========================================
@@ -298,5 +314,6 @@ module.exports = {
   createPost,                 // 创建
   updatePost,                 // 更新
   deletePost,                 // 删除
+  updatePostCover,            // 更新封面
 };
 

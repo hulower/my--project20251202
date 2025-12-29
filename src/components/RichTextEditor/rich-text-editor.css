@@ -1,0 +1,238 @@
+/* 富文本编辑器样式 */
+.rich-text-editor {
+  width: 100%;
+}
+
+/* Tiptap 编辑器样式 */
+.ProseMirror {
+  outline: none;
+  min-height: 300px;
+  max-height: 500px;
+  overflow-y: auto;
+  padding: 1rem;
+  background: white;
+}
+
+.dark .ProseMirror {
+  background: #111827;
+  color: #d1d5db;
+}
+
+/* 占位符样式 */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #9ca3af;
+  pointer-events: none;
+  height: 0;
+}
+
+/* 标题样式 */
+.ProseMirror h1 {
+  font-size: 2em;
+  font-weight: 700;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  padding-bottom: 0.3em;
+  border-bottom: 2px solid #e5e7eb;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.ProseMirror h2 {
+  font-size: 1.5em;
+  font-weight: 700;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  padding-bottom: 0.2em;
+  border-bottom: 1px solid #e5e7eb;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.ProseMirror h3 {
+  font-size: 1.25em;
+  font-weight: 600;
+  margin-top: 0.8em;
+  margin-bottom: 0.5em;
+  line-height: 1.4;
+}
+
+.ProseMirror h4 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin-top: 0.8em;
+  margin-bottom: 0.5em;
+}
+
+.ProseMirror h5,
+.ProseMirror h6 {
+  font-size: 1em;
+  font-weight: 600;
+  margin-top: 0.6em;
+  margin-bottom: 0.5em;
+}
+
+/* 段落样式 */
+.ProseMirror p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.7;
+}
+
+/* 列表样式 */
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 2em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.ProseMirror li {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+  line-height: 1.6;
+}
+
+.ProseMirror li p {
+  margin: 0;
+}
+
+/* 引用样式 */
+.ProseMirror blockquote {
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  border-left: 4px solid #3b82f6;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  font-style: italic;
+}
+
+.dark .ProseMirror blockquote {
+  background-color: #1f2937;
+  color: #9ca3af;
+  border-left-color: #60a5fa;
+}
+
+/* 代码样式 */
+.ProseMirror code {
+  padding: 0.2em 0.4em;
+  margin: 0;
+  font-size: 0.85em;
+  background-color: rgba(175, 184, 193, 0.2);
+  border-radius: 3px;
+  font-family: ui-monospace, monospace;
+  color: #e01e5a;
+}
+
+.dark .ProseMirror code {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ff6b9d;
+}
+
+.ProseMirror pre {
+  padding: 1em;
+  overflow-x: auto;
+  background-color: #f6f8fa;
+  border-radius: 6px;
+  margin: 1em 0;
+  font-family: ui-monospace, monospace;
+}
+
+.dark .ProseMirror pre {
+  background-color: #161b22;
+}
+
+.ProseMirror pre code {
+  background-color: transparent;
+  padding: 0;
+  font-size: 0.875em;
+  color: inherit;
+  line-height: 1.5;
+}
+
+/* 链接样式 */
+.ProseMirror a {
+  color: #3b82f6;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.ProseMirror a:hover {
+  color: #2563eb;
+}
+
+.dark .ProseMirror a {
+  color: #60a5fa;
+}
+
+.dark .ProseMirror a:hover {
+  color: #93bbfb;
+}
+
+/* 图片样式 */
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  margin: 1em 0;
+  border-radius: 4px;
+  display: block;
+}
+
+/* 分割线样式 */
+.ProseMirror hr {
+  border: none;
+  border-top: 2px solid #e5e7eb;
+  margin: 2em 0;
+}
+
+.dark .ProseMirror hr {
+  border-top-color: #374151;
+}
+
+/* 选中样式 */
+.ProseMirror ::selection {
+  background-color: #b4d5ff;
+}
+
+.dark .ProseMirror ::selection {
+  background-color: #1e3a5f;
+}
+
+/* 焦点样式 */
+.ProseMirror:focus {
+  outline: none;
+}
+
+/* 滚动条样式 */
+.ProseMirror::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ProseMirror::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.dark .ProseMirror::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+.ProseMirror::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+.dark .ProseMirror::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+.ProseMirror::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.dark .ProseMirror::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+

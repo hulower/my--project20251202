@@ -4,6 +4,8 @@ import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Badge } from '../../../components/ui/badge';
 import { Separator } from '../../../components/ui/separator';
+import { useToast } from '../../../hooks/use-toast';
+import ConfirmDialog from '../../../components/ConfirmDialog';
 import {
   Upload,
   Music,
@@ -16,7 +18,8 @@ import {
   CheckCircle,
   AlertCircle,
   Plus,
-  X
+  X,
+  FileText
 } from 'lucide-react';
 import * as musicApi from '../../../api/musicApi';
 
@@ -24,9 +27,14 @@ import * as musicApi from '../../../api/musicApi';
  * MusicManagePage - 音乐上传和管理页面
  */
 function MusicManagePage() {
+  const { toast } = useToast();
   const [musicList, setMusicList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // 删除确认对话框
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingMusic, setDeletingMusic] = useState(null);
 
   // 上传表单
   const [showUploadForm, setShowUploadForm] = useState(false);
@@ -43,6 +51,9 @@ function MusicManagePage() {
   const [editArtist, setEditArtist] = useState('');
   const [editAlbum, setEditAlbum] = useState('');
   const [editLyrics, setEditLyrics] = useState('');
+  const [editCoverFile, setEditCoverFile] = useState(null); // 新封面文件
+  const [editCoverPreview, setEditCoverPreview] = useState(null); // 封面预览URL
+  const [lrcFileName, setLrcFileName] = useState(''); // LRC 文件名
 
   // 预览音频
   const [previewingMusicId, setPreviewingMusicId] = useState(null);
@@ -70,7 +81,11 @@ function MusicManagePage() {
       setMusicList(data);
     } catch (err) {
       console.error('加载音乐列表失败:', err);
-      alert('加载音乐列表失败：' + err.message);
+      toast({
+        variant: "destructive",
+        title: "✗ 加载失败",
+        description: err.message,
+      });
     } finally {
       setLoading(false);
     }
@@ -79,11 +94,19 @@ function MusicManagePage() {
   // 上传音乐
   const handleUploadMusic = async () => {
     if (!musicFile) {
-      alert('请选择音乐文件');
+      toast({
+        variant: "destructive",
+        title: "⚠ 请选择音乐文件",
+        description: "请先选择要上传的音乐文件",
+      });
       return;
     }
     if (!title) {
-      alert('请输入歌曲标题');
+      toast({
+        variant: "destructive",
+        title: "⚠ 请输入歌曲标题",
+        description: "歌曲标题不能为空",
+      });
       return;
     }
 
@@ -111,11 +134,18 @@ function MusicManagePage() {
           console.log('✅ 封面上传成功:', updatedMusic);
         } catch (coverErr) {
           console.error('❌ 封面上传失败:', coverErr);
-          alert(`音乐上传成功，但封面上传失败：${coverErr.message}\n请稍后在音乐管理页面单独上传封面。`);
+          toast({
+            variant: "destructive",
+            title: "⚠ 封面上传失败",
+            description: `音乐上传成功，但封面上传失败：${coverErr.message}`,
+          });
         }
       }
 
-      alert(coverFile ? '上传成功！音乐和封面都已保存。' : '上传成功！');
+      toast({
+        title: "✓ 上传成功",
+        description: coverFile ? "音乐和封面都已保存" : "音乐已成功上传",
+      });
 
       // 重置表单
       setMusicFile(null);
@@ -129,25 +159,53 @@ function MusicManagePage() {
       loadMusicList();
     } catch (err) {
       console.error('上传失败:', err);
-      alert('上传失败：' + err.message);
+      toast({
+        variant: "destructive",
+        title: "✗ 上传失败",
+        description: err.message,
+      });
     } finally {
       setUploading(false);
     }
   };
 
-  // 删除音乐
-  const handleDeleteMusic = async (id, title) => {
-    if (!window.confirm(`确定要删除《${title}》吗？`)) {
-      return;
-    }
+  // 打开删除确认对话框
+  const handleDeleteClick = (music) => {
+    setDeletingMusic(music);
+    setDeleteDialogOpen(true);
+  };
+
+  // 确认删除音乐
+  const handleConfirmDelete = async () => {
+    if (!deletingMusic) return;
 
     try {
-      await musicApi.deleteMusic(id);
-      alert('删除成功！');
+      await musicApi.deleteMusic(deletingMusic.id);
+      toast({
+        title: "✓ 删除成功",
+        description: `《${deletingMusic.title}》已被删除`,
+      });
+      
+      // 如果正在预览这首音乐，停止播放
+      if (previewingMusicId === deletingMusic.id) {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
+        setPreviewingMusicId(null);
+      }
+      
       loadMusicList();
     } catch (err) {
       console.error('删除失败:', err);
-      alert('删除失败：' + err.message);
+      toast({
+        variant: "destructive",
+        title: "✗ 删除失败",
+        description: err.message,
+      });
+    } finally {
+      setDeleteDialogOpen(false);
+      setDeletingMusic(null);
     }
   };
 
@@ -158,28 +216,164 @@ function MusicManagePage() {
     setEditArtist(music.artist);
     setEditAlbum(music.album || '');
     setEditLyrics(music.lyrics || '');
+    setEditCoverFile(null);
+    setEditCoverPreview(null);
+    setLrcFileName(''); // Reset LRC file name
+  };
+
+  // 处理 LRC 文件上传
+  const handleLrcFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 检查文件类型
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith('.lrc') && !fileName.endsWith('.txt')) {
+      toast({
+        variant: "destructive",
+        title: "✗ 文件格式错误",
+        description: "请上传 .lrc 或 .txt 格式的歌词文件",
+      });
+      return;
+    }
+
+    // 先尝试 UTF-8 编码读取
+    const readerUTF8 = new FileReader();
+    readerUTF8.onload = (event) => {
+      const content = event.target.result;
+      
+      // 检测是否有乱码（检测是否有大量的替换字符 �）
+      const replacementCharCount = (content.match(/�/g) || []).length;
+      const hasInvalidChars = replacementCharCount > 3; // 如果超过 3 个 � 认为是乱码
+      
+      if (hasInvalidChars) {
+        // UTF-8 解码失败，尝试 GBK/GB2312（使用 ArrayBuffer 读取）
+        console.log('检测到编码问题，尝试 GBK 编码...');
+        const readerGBK = new FileReader();
+        readerGBK.onload = (e) => {
+          try {
+            // 使用 TextDecoder 尝试 GBK 解码
+            const arrayBuffer = e.target.result;
+            const decoder = new TextDecoder('gbk');
+            const decodedContent = decoder.decode(arrayBuffer);
+            
+            setEditLyrics(decodedContent);
+            setLrcFileName(file.name);
+            
+            toast({
+              title: "✓ LRC 文件加载成功",
+              description: `已加载 ${file.name} (GBK 编码)，歌词将支持时间戳滚动`,
+            });
+          } catch (err) {
+            console.error('GBK 解码失败:', err);
+            // GBK 也失败，尝试 GB18030
+            try {
+              const arrayBuffer = e.target.result;
+              const decoder = new TextDecoder('gb18030');
+              const decodedContent = decoder.decode(arrayBuffer);
+              
+              setEditLyrics(decodedContent);
+              setLrcFileName(file.name);
+              
+              toast({
+                title: "✓ LRC 文件加载成功",
+                description: `已加载 ${file.name} (GB18030 编码)`,
+              });
+            } catch (err2) {
+              console.error('GB18030 解码失败:', err2);
+              // 都失败了，使用原始 UTF-8 内容
+              setEditLyrics(content);
+              setLrcFileName(file.name);
+              
+              toast({
+                variant: "destructive",
+                title: "⚠ 文件编码可能有误",
+                description: "文件已加载，但可能显示乱码。建议将文件转为 UTF-8 编码后重新上传。",
+              });
+            }
+          }
+        };
+        readerGBK.readAsArrayBuffer(file);
+      } else {
+        // UTF-8 解码成功
+        setEditLyrics(content);
+        setLrcFileName(file.name);
+        
+        toast({
+          title: "✓ LRC 文件加载成功",
+          description: `已加载 ${file.name}，歌词将支持时间戳滚动`,
+        });
+      }
+    };
+    
+    readerUTF8.onerror = () => {
+      toast({
+        variant: "destructive",
+        title: "✗ 文件读取失败",
+        description: "无法读取文件内容，请重试",
+      });
+    };
+    
+    readerUTF8.readAsText(file, 'UTF-8');
+    
+    // 重置 input，允许重复上传同一文件
+    e.target.value = '';
+  };
+
+  // 处理封面选择
+  const handleCoverChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEditCoverFile(file);
+      // 创建预览 URL
+      const previewUrl = URL.createObjectURL(file);
+      setEditCoverPreview(previewUrl);
+    }
   };
 
   // 保存编辑
   const handleSaveEdit = async () => {
     if (!editTitle) {
-      alert('标题不能为空');
+      toast({
+        variant: "destructive",
+        title: "⚠ 标题不能为空",
+        description: "请输入歌曲标题",
+      });
       return;
     }
 
     try {
+      // 1. 更新基本信息
       await musicApi.updateMusic(editingMusic.id, {
         title: editTitle,
         artist: editArtist,
         album: editAlbum || null,
         lyrics: editLyrics || null,
       });
-      alert('更新成功！');
+
+      // 2. 如果选择了新封面，上传封面
+      if (editCoverFile) {
+        const coverFormData = new FormData();
+        coverFormData.append('cover', editCoverFile);
+        await musicApi.uploadMusicCover(editingMusic.id, coverFormData);
+      }
+
+      toast({
+        title: "✓ 更新成功",
+        description: editCoverFile ? "音乐信息和封面都已更新" : "音乐信息已更新",
+      });
+      
       setEditingMusic(null);
+      setEditCoverFile(null);
+      setEditCoverPreview(null);
       loadMusicList();
     } catch (err) {
       console.error('更新失败:', err);
-      alert('更新失败：' + err.message);
+      toast({
+        variant: "destructive",
+        title: "✗ 更新失败",
+        description: err.message,
+      });
     }
   };
 
@@ -205,7 +399,11 @@ function MusicManagePage() {
       
       audio.play().catch(err => {
         console.error('播放失败:', err);
-        alert('播放失败，请检查音频文件是否正常');
+        toast({
+          variant: "destructive",
+          title: "✗ 播放失败",
+          description: "请检查音频文件是否正常",
+        });
         setPreviewingMusicId(null);
       });
       
@@ -220,7 +418,11 @@ function MusicManagePage() {
       // 播放出错时的回调
       audio.onerror = () => {
         console.error('音频加载失败');
-        alert('音频加载失败，请检查文件格式');
+        toast({
+          variant: "destructive",
+          title: "✗ 音频加载失败",
+          description: "请检查文件格式是否支持",
+        });
         setPreviewingMusicId(null);
         audioRef.current = null;
       };
@@ -245,7 +447,7 @@ function MusicManagePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 py-8">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 pt-24 pb-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* 页面标题 */}
         <div className="mb-8">
@@ -478,6 +680,63 @@ function MusicManagePage() {
                     {editingMusic?.id === music.id ? (
                       // 编辑模式
                       <div className="space-y-4">
+                        {/* 封面预览和上传 */}
+                        <div className="flex items-start gap-4">
+                          {/* 当前封面或新封面预览 */}
+                          <div className="flex-shrink-0">
+                            <label className="block text-sm font-medium mb-2">封面图片</label>
+                            <div className="w-24 h-24 rounded-lg overflow-hidden bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+                              {editCoverPreview ? (
+                                <img
+                                  src={editCoverPreview}
+                                  alt="新封面预览"
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : music.cover ? (
+                                <img
+                                  src={music.cover}
+                                  alt="当前封面"
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <Music className="w-12 h-12 text-white" />
+                              )}
+                            </div>
+                          </div>
+                          {/* 封面上传按钮 */}
+                          <div className="flex-1">
+                            <label className="block text-sm font-medium mb-2">
+                              {editCoverFile ? '已选择新封面' : '修改封面'}
+                            </label>
+                            <div className="flex flex-col gap-2">
+                              <label
+                                htmlFor={`edit-cover-${music.id}`}
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors"
+                              >
+                                <ImageIcon className="w-4 h-4" />
+                                {editCoverFile ? '重新选择' : '选择图片'}
+                              </label>
+                              <input
+                                id={`edit-cover-${music.id}`}
+                                type="file"
+                                accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                                onChange={handleCoverChange}
+                                className="hidden"
+                              />
+                              {editCoverFile && (
+                                <p className="text-xs text-gray-500">
+                                  {editCoverFile.name} ({formatFileSize(editCoverFile.size)})
+                                </p>
+                              )}
+                              <p className="text-xs text-gray-400">
+                                支持 JPG, PNG, WEBP, GIF (最大 2MB)
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <Separator />
+
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
                             <label className="block text-sm font-medium mb-1">标题</label>
@@ -503,12 +762,39 @@ function MusicManagePage() {
                         </div>
                         <div>
                           <label className="block text-sm font-medium mb-1">歌词</label>
+                          
+                          {/* LRC 文件上传 */}
+                          <div className="mb-2">
+                            <label
+                              htmlFor="lrc-file-input"
+                              className="flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors"
+                            >
+                              <FileText className="w-4 h-4" />
+                              <span className="text-sm">
+                                {lrcFileName || '点击上传 LRC 文件（支持时间戳滚动）'}
+                              </span>
+                            </label>
+                            <input
+                              id="lrc-file-input"
+                              type="file"
+                              accept=".lrc,.txt"
+                              onChange={handleLrcFileUpload}
+                              className="hidden"
+                            />
+                            {lrcFileName && (
+                              <p className="text-xs text-green-600 mt-1">
+                                ✓ 已加载: {lrcFileName}
+                              </p>
+                            )}
+                          </div>
+                          
+                          {/* 歌词文本框 */}
                           <textarea
                             value={editLyrics}
                             onChange={(e) => setEditLyrics(e.target.value)}
-                            rows={4}
-                            placeholder="输入歌词内容（每行一句）"
-                            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                            rows={6}
+                            placeholder="输入歌词内容（每行一句）&#10;&#10;或上传 LRC 文件自动填充&#10;&#10;LRC 格式示例：&#10;[00:12.50]第一行歌词&#10;[00:15.80]第二行歌词"
+                            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-y font-mono"
                           />
                         </div>
                         <div className="flex gap-2">
@@ -590,7 +876,7 @@ function MusicManagePage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleDeleteMusic(music.id, music.title)}
+                            onClick={() => handleDeleteClick(music)}
                             className="text-red-600 hover:bg-red-50"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -605,6 +891,24 @@ function MusicManagePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* 删除确认对话框 */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="确认删除"
+        description={
+          <>
+            确定要删除《{deletingMusic?.title}》吗？
+            <br />
+            <span className="text-red-600 font-medium">此操作不可逆！</span>
+          </>
+        }
+        onConfirm={handleConfirmDelete}
+        confirmText="删除"
+        cancelText="取消"
+        confirmVariant="destructive"
+      />
     </div>
   );
 }

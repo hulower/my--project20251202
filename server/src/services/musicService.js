@@ -34,6 +34,7 @@ class MusicService {
       fileSize: music.fileSize,
       format: music.format,
       playCount: music.playCount,
+      lyrics: music.lyrics || null,
       createdAt: music.createdAt,
     }));
   }

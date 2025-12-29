@@ -7,6 +7,7 @@
 
 const postService = require('../services/postService');
 const Response = require('../utils/response');
+const { uploadPostCover } = require('../middleware/postCoverUpload');
 
 /**
  * 获取文章列表（支持分页和分类筛选）
@@ -124,6 +125,60 @@ async function deletePost(req, res, next) {
   }
 }
 
+/**
+ * 上传文章封面
+ * POST /api/posts/:id/cover
+ */
+async function uploadCover(req, res, next) {
+  // 使用 multer 中间件处理上传
+  uploadPostCover.single('cover')(req, res, async (err) => {
+    if (err) {
+      console.error('❌ 封面上传错误:', err);
+      return Response.error(res, err.message, 400, 400);
+    }
+
+    try {
+      const id = Number(req.params.id);
+      console.log('📥 收到请求: POST /api/posts/:id/cover', { id, file: req.file?.filename });
+
+      if (!req.file) {
+        return Response.error(res, '请选择封面图片', 400, 400);
+      }
+
+      // 构建封面图片URL
+      const coverPath = `/uploads/posts/covers/${req.file.filename}`;
+      
+      // 更新文章的封面字段
+      const updatedPost = await postService.updatePostCover(id, coverPath);
+      
+      Response.success(res, {
+        ...updatedPost,
+        coverImage: `${process.env.API_BASE_URL || 'http://localhost:5001'}${coverPath}`
+      }, '封面上传成功');
+    } catch (err) {
+      next(err);
+    }
+  });
+}
+
+/**
+ * 删除文章封面
+ * DELETE /api/posts/:id/cover
+ */
+async function removeCover(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    console.log('📥 收到请求: DELETE /api/posts/:id/cover', { id });
+
+    // 将文章的封面字段设置为 NULL
+    const updatedPost = await postService.updatePostCover(id, null);
+    
+    Response.success(res, updatedPost, '封面删除成功');
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   listPosts,
   getPost,
@@ -131,5 +186,7 @@ module.exports = {
   createPost,
   updatePost,
   deletePost,
+  uploadCover,
+  removeCover,
 };
 

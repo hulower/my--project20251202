@@ -7,8 +7,11 @@ import { Calendar, Clock, Eye, Type, Tag } from 'lucide-react';
 /**
  * ArticleMetaInfo - 文章元信息组件
  * 显示发布时间、阅读时长、字数、浏览量等
+ * 
+ * @param {Object} post - 文章对象
+ * @param {boolean} inline - 是否使用内联布局（用于文章头部）
  */
-function ArticleMetaInfo({ post }) {
+function ArticleMetaInfo({ post, inline = false }) {
   // 格式化日期
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -43,6 +46,55 @@ function ArticleMetaInfo({ post }) {
   const readingTime = calculateReadingTime(post.content);
   const wordCount = post.content?.length || 0;
 
+  // 内联模式 - 用于文章头部
+  if (inline) {
+    return (
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm text-gray-600 dark:text-gray-400">
+        {/* 分类标签 */}
+        <Badge
+          className={`${categoryStyle.bg} ${categoryStyle.text} px-3 py-1 text-sm font-semibold shadow-sm`}
+          style={{ fontWeight: '600', letterSpacing: '0.01em' }}
+        >
+          <span className="mr-1.5">{categoryStyle.icon}</span>
+          {post.category || '技术博客'}
+        </Badge>
+        
+        {/* 发布时间 */}
+        <div className="flex items-center gap-1.5">
+          <Calendar className="w-4 h-4 text-blue-500" />
+          <span style={{ fontWeight: '400', letterSpacing: '0.01em' }}>
+            {formatDate(post.createdAt)}
+          </span>
+        </div>
+
+        {/* 阅读时长 */}
+        <div className="flex items-center gap-1.5">
+          <Clock className="w-4 h-4 text-green-500" />
+          <span style={{ fontWeight: '400', letterSpacing: '0.01em' }}>
+            约 {readingTime} 分钟
+          </span>
+        </div>
+
+        {/* 字数统计 */}
+        <div className="flex items-center gap-1.5">
+          <Type className="w-4 h-4 text-orange-500" />
+          <span style={{ fontWeight: '400', letterSpacing: '0.01em' }}>
+            {wordCount.toLocaleString()} 字
+          </span>
+        </div>
+
+        {/* 浏览量 */}
+        <div className="flex items-center gap-1.5">
+          <Eye className="w-4 h-4 text-red-500" />
+          <span style={{ fontWeight: '400', letterSpacing: '0.01em' }}>
+            {post.viewCount || 0} 次
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // 卡片模式 - 原来的右侧栏布局
   return (
     <Card className="mb-6">
       <CardContent className="pt-6">

@@ -6,10 +6,12 @@ import { Badge } from '../../../components/ui/badge';
 import { Separator } from '../../../components/ui/separator';
 import { Button } from '../../../components/ui/button';
 import { Home, Folder, Archive, Sparkles, Link2, User, Rss, Camera, Loader2, Github, Mail, ChevronDown, ChevronRight } from 'lucide-react';
+import { useToast } from '../../../hooks/use-toast';
 import * as userApi from '../../../api/userApi';
 import { API_BASE } from '../../../api/httpClient';
 
 function Sidebar({ stats = { posts: 0, categories: 0, tags: 0 } }) {
+  const { toast } = useToast();
   const location = useLocation();
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -66,13 +68,21 @@ function Sidebar({ stats = { posts: 0, categories: 0, tags: 0 } }) {
     
     // 文件类型检查
     if (!file.type.startsWith('image/')) {
-      alert('请选择图片文件！');
+      toast({
+        variant: "destructive",
+        title: "✗ 上传失败",
+        description: "请选择图片文件！",
+      });
       return;
     }
     
     // 文件大小检查（5MB）
     if (file.size > 5 * 1024 * 1024) {
-      alert('图片大小不能超过 5MB！');
+      toast({
+        variant: "destructive",
+        title: "✗ 上传失败",
+        description: "图片大小不能超过 5MB！",
+      });
       return;
     }
 
@@ -95,7 +105,11 @@ function Sidebar({ stats = { posts: 0, categories: 0, tags: 0 } }) {
       }
     } catch (error) {
       console.error('上传失败:', error);
-      alert('上传失败，请检查网络连接或后端服务是否启动！');
+      toast({
+        variant: "destructive",
+        title: "✗ 上传失败",
+        description: "请检查网络连接或后端服务是否启动！",
+      });
     } finally {
       setUploading(false);
     }

@@ -1,4 +1,4 @@
-import { get, post, put, del } from './httpClient';
+import { get, post, put, del, upload } from './httpClient';
 
 /**
  * 获取文章列表（支持分页和分类筛选）
@@ -55,4 +55,22 @@ export function deletePost(id) {
   return del(`/api/posts/${id}`);
 }
 
+/**
+ * 上传文章封面图片
+ * @param {number} id - 文章 ID
+ * @param {FormData} formData - 包含封面图片的 FormData 对象
+ * @returns {Promise} - 上传结果
+ */
+export function uploadCoverImage(id, formData) {
+  return upload(`/api/posts/${id}/cover`, formData);
+}
+
+/**
+ * 删除文章封面图片
+ * @param {number} id - 文章 ID
+ * @returns {Promise} - 删除结果
+ */
+export function removeCoverImage(id) {
+  return del(`/api/posts/${id}/cover`);
+}
 

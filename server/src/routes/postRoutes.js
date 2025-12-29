@@ -127,6 +127,35 @@ router.put('/:id', postController.updatePost);
  */
 router.delete('/:id', postController.deletePost);
 
+/**
+ * 上传文章封面
+ * @route POST /api/posts/:id/cover
+ * @description 为指定文章上传封面图片
+ * @param {number} id - 文章 ID（路径参数）
+ * @body {File} cover - 封面图片文件
+ * @access Public
+ * 
+ * 完整 URL：http://localhost:5001/api/posts/1/cover
+ * 
+ * POST 用于上传文件
+ * 使用 multipart/form-data 格式传递文件
+ */
+router.post('/:id/cover', postController.uploadCover);
+
+/**
+ * 删除文章封面
+ * @route DELETE /api/posts/:id/cover
+ * @description 删除指定文章的封面图片
+ * @param {number} id - 文章 ID（路径参数）
+ * @access Public
+ * 
+ * 完整 URL：http://localhost:5001/api/posts/1/cover
+ * 
+ * DELETE 用于删除封面
+ * 将文章的 cover_image 字段设置为 NULL
+ */
+router.delete('/:id/cover', postController.removeCover);
+
 // ========================================
 // 导出路由
 // ========================================

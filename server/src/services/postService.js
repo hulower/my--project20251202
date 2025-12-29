@@ -371,6 +371,26 @@ class PostService {
     
     return deleted;
   }
+
+  /**
+   * 更新文章封面
+   * @param {number} id - 文章 ID
+   * @param {string} coverPath - 封面图片路径
+   * @returns {Promise<Object>} 更新后的文章对象
+   */
+  async updatePostCover(id, coverPath) {
+    // 检查文章是否存在
+    const post = await postRepository.findPostById(id);
+    if (!post) {
+      const error = new Error('文章不存在');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // 更新封面
+    const updated = await postRepository.updatePostCover(id, coverPath);
+    return updated;
+  }
 }
 
 // ========================================

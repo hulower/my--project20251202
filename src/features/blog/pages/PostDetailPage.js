@@ -9,10 +9,11 @@ import {
   Trash2, 
   Loader2,
   AlertCircle,
-  Share2,
-  Heart,
-  MessageCircle
+  MessageCircle,
+  Heart
 } from 'lucide-react';
+import { useToast } from '../../../hooks/use-toast';
+import ConfirmDialog from '../../../components/ConfirmDialog';
 import Sidebar from '../components/Sidebar';
 import ArticleMetaInfo from '../components/ArticleMetaInfo';
 import ArticleToc from '../components/ArticleToc';
@@ -20,6 +21,7 @@ import RelatedPosts from '../components/RelatedPosts';
 import ReadingProgress from '../components/ReadingProgress';
 import ArticleMusicPlayer from '../../../components/ArticleMusicPlayer/ArticleMusicPlayer';
 import '../styles/article-content.css';
+import '../../../components/RichTextEditor/rich-text-editor.css';
 
 /**
  * PostDetailPage - 文章详情页（三栏布局）
@@ -27,20 +29,39 @@ import '../styles/article-content.css';
  * 
  * 布局：
  * - 左侧栏：作者信息（复用 Sidebar）
- * - 中间：文章内容主体
- * - 右侧栏：文章元信息、目录、相关推荐
+ * - 中间：文章标题、元信息、内容主体
+ * - 右侧栏：相关推荐、文章目录
  */
 function PostDetailPage() {
+  const { toast } = useToast();
   const { slug } = useParams();
   const navigate = useNavigate();
   
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // 删除确认对话框
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     loadPost();
   }, [slug]);
+
+  // 为文章标题添加 ID，以支持目录锚点跳转
+  useEffect(() => {
+    if (!post) return;
+
+    const articleContent = document.querySelector('.article-content');
+    if (!articleContent) return;
+
+    const headings = articleContent.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    headings.forEach((heading, index) => {
+      if (!heading.id) {
+        heading.id = `heading-${index}`;
+      }
+    });
+  }, [post]);
 
   const loadPost = async () => {
     try {
@@ -67,16 +88,27 @@ function PostDetailPage() {
     console.log('编辑文章:', post.id);
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm('确定要删除这篇文章吗？')) return;
-    
+  const handleDelete = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
     try {
       await blogApi.deletePost(post.id);
-      alert('删除成功！');
+      toast({
+        title: "✓ 删除成功",
+        description: `《${post.title}》已删除。`,
+      });
       navigate('/blog');
     } catch (err) {
       console.error('删除失败:', err);
-      alert('删除失败，请稍后重试');
+      toast({
+        variant: "destructive",
+        title: "✗ 删除失败",
+        description: "请稍后重试",
+      });
+    } finally {
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -120,66 +152,8 @@ function PostDetailPage() {
       <ReadingProgress />
 
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
-        {/* 顶部操作栏 */}
-        <div className="sticky top-0 z-40 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-            <div className="flex items-center justify-between">
-              <Button
-                variant="ghost"
-                onClick={handleBack}
-                className="gap-2"
-                style={{ fontWeight: '500', letterSpacing: '0.01em' }}
-              >
-                <ArrowLeft className="w-4 h-4" />
-                返回
-              </Button>
-              
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1.5"
-                  style={{ fontWeight: '500', letterSpacing: '0.01em' }}
-                >
-                  <Heart className="w-4 h-4" />
-                  <span className="hidden sm:inline">点赞</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1.5"
-                  style={{ fontWeight: '500', letterSpacing: '0.01em' }}
-                >
-                  <Share2 className="w-4 h-4" />
-                  <span className="hidden sm:inline">分享</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleEdit}
-                  className="gap-1.5"
-                  style={{ fontWeight: '500', letterSpacing: '0.01em' }}
-                >
-                  <Edit className="w-4 h-4" />
-                  <span className="hidden sm:inline">编辑</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDelete}
-                  className="gap-1.5 text-red-600 hover:bg-red-50 hover:border-red-300 dark:text-red-400 dark:hover:bg-red-900/20"
-                  style={{ fontWeight: '500', letterSpacing: '0.01em' }}
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span className="hidden sm:inline">删除</span>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* 三栏布局主体 */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
             {/* 左侧栏 - 作者信息 */}
@@ -204,6 +178,11 @@ function PostDetailPage() {
                   {post.title}
                 </h1>
 
+                {/* 文章元信息 - 移动到标题下方，使用内联布局 */}
+                <div className="mb-6">
+                  <ArticleMetaInfo post={post} inline={true} />
+                </div>
+
                 <Separator className="my-6" />
 
                 {/* 文章配乐 - 放在文章开头 */}
@@ -211,10 +190,11 @@ function PostDetailPage() {
                   <ArticleMusicPlayer musicId={post.musicId} />
                 )}
 
-                {/* 文章正文 */}
-                <div className="article-content whitespace-pre-wrap">
-                  {post.content}
-                </div>
+                {/* 文章正文 - 富文本 HTML 渲染 */}
+                <div 
+                  className="article-content ProseMirror"
+                  dangerouslySetInnerHTML={{ __html: post.content }}
+                />
 
                 {/* 文章底部信息 */}
                 <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
@@ -268,27 +248,36 @@ function PostDetailPage() {
               </div>
             </main>
 
-            {/* 右侧栏 - 文章元信息、目录、相关推荐 */}
+            {/* 右侧栏 - 相关推荐、目录 */}
             <aside className="lg:col-span-3">
               <div className="space-y-6">
-                {/* 文章元信息 */}
-                <ArticleMetaInfo post={post} />
-
-                {/* 文章目录 */}
-                <ArticleToc content={post.content} />
-
-                {/* 相关推荐 */}
+                {/* 相关推荐 - 移到最上面 */}
                 <RelatedPosts 
                   currentPostId={post.id} 
                   category={post.category} 
                   limit={5} 
                 />
+
+                {/* 文章目录 - 在相关推荐下面 */}
+                <ArticleToc content={post.content} />
               </div>
             </aside>
 
           </div>
         </div>
       </div>
+
+      {/* 删除确认对话框 */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="确认删除"
+        description={`确定要删除《${post?.title}》吗？此操作不可逆！`}
+        onConfirm={handleConfirmDelete}
+        confirmText="删除"
+        cancelText="取消"
+        confirmVariant="destructive"
+      />
     </>
   );
 }

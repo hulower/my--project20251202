@@ -1,9 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../../../components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
-import { Badge } from '../../../components/ui/badge';
-import { Calendar, Folder, Tag, Edit, Trash2 } from 'lucide-react';
+import { Separator } from '../../../components/ui/separator';
+import { Calendar, Tag, Edit, Trash2 } from 'lucide-react';
 
 function PostCard({ post, onEdit, onDelete }) {
   const navigate = useNavigate();
@@ -22,12 +22,6 @@ function PostCard({ post, onEdit, onDelete }) {
       month: '2-digit',
       day: '2-digit',
     });
-  };
-
-  // 截取摘要（前150字）
-  const getExcerpt = (content) => {
-    if (!content) return '';
-    return content.length > 150 ? content.substring(0, 150) + '...' : content;
   };
 
   // 根据分类获取标签样式
@@ -63,9 +57,9 @@ function PostCard({ post, onEdit, onDelete }) {
       {/* 装饰性渐变背景 */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700" />
       
-      <CardHeader className="relative">
-        {/* 分类标签 - 醒目的彩色标签 */}
-        <div className="flex items-center justify-between mb-4">
+      <CardHeader className="pb-3 relative">
+        {/* 分类标签 */}
+        <div className="mb-4">
           <div 
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${categoryStyle.bg} ${categoryStyle.text} text-sm font-medium shadow-lg`}
             style={{ 
@@ -77,71 +71,78 @@ function PostCard({ post, onEdit, onDelete }) {
             <span>{categoryStyle.label}</span>
           </div>
         </div>
+
+        {/* 标题 */}
         <CardTitle 
           onClick={handleViewDetail}
-          className="text-3xl font-bold hover:text-primary transition-colors cursor-pointer mb-3 bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300"
+          className="text-2xl font-bold hover:text-primary transition-colors cursor-pointer bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300"
           style={{ 
-            fontWeight: '800',
-            letterSpacing: '-0.02em',
-            lineHeight: '1.2'
+            fontWeight: '700',
+            letterSpacing: '-0.01em',
+            lineHeight: '1.3'
           }}
         >
-          {post.title}
+          {post.title || '未命名'}
         </CardTitle>
-        <CardDescription 
-          className="flex flex-wrap gap-4 mt-2"
-          style={{ 
-            fontWeight: '500',
-            letterSpacing: '0.01em'
-          }}
-        >
-          <span className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
-            <Calendar className="w-4 h-4 text-blue-500" />
-            {formatDate(post.createdAt)}
-          </span>
-          <span className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
-            <Tag className="w-4 h-4 text-purple-500" />
-            {post.content?.length || 0} 字
-          </span>
-        </CardDescription>
       </CardHeader>
 
-      <CardContent>
-        <p 
-          className="text-gray-700 dark:text-gray-300 leading-relaxed text-base"
-          style={{ 
-            fontWeight: '400',
-            letterSpacing: '0.02em',
-            lineHeight: '1.8'
-          }}
+      <Separator className="bg-blue-100 dark:bg-blue-900/30" />
+
+      <CardContent className="pt-5">
+        <div 
+          onClick={handleViewDetail}
+          className="relative cursor-pointer group/content"
         >
-          {getExcerpt(post.content)}
-        </p>
+          <div className="absolute -left-2 top-0 w-1 h-full bg-gradient-to-b from-blue-500/50 to-transparent rounded-full group-hover/content:from-blue-600/70 transition-colors" />
+          <p 
+            className="text-base text-gray-700 dark:text-gray-300 line-clamp-4 pl-3"
+            style={{ 
+              fontWeight: '400',
+              letterSpacing: '0.02em',
+              lineHeight: '1.8'
+            }}
+          >
+            {post.content}
+          </p>
+        </div>
       </CardContent>
 
-      <CardFooter className="relative flex justify-between items-center pt-6 border-t border-gray-100 dark:border-gray-800">
-        <Button 
-          onClick={handleViewDetail}
-          variant="link" 
-          className="px-0 text-blue-600 hover:text-blue-700 dark:text-blue-400 group/read"
-          style={{ 
-            fontWeight: '600',
-            letterSpacing: '0.01em'
-          }}
-        >
-          阅读全文 
-          <span className="inline-block ml-1 group-hover/read:translate-x-1 transition-transform">→</span>
-        </Button>
+      <Separator className="bg-blue-100 dark:bg-blue-900/30" />
+
+      <CardFooter className="pt-4 flex items-center justify-between">
+        {/* 元信息 */}
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5" />
+            <span
+              style={{ 
+                fontWeight: '400', 
+                letterSpacing: '0.01em' 
+              }}
+            >
+              {formatDate(post.createdAt)}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Tag className="w-3.5 h-3.5" />
+            <span
+              style={{ 
+                fontWeight: '400', 
+                letterSpacing: '0.01em' 
+              }}
+            >
+              {post.content?.length || 0} 字
+            </span>
+          </div>
+        </div>
+
+        {/* 操作按钮 */}
         <div className="flex gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => onEdit(post)}
             className="gap-1.5 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors"
-            style={{ 
-              fontWeight: '500',
-              letterSpacing: '0.01em'
-            }}
           >
             <Edit className="w-4 h-4" />
             编辑
@@ -149,12 +150,8 @@ function PostCard({ post, onEdit, onDelete }) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onDelete(post.id)}
+            onClick={() => onDelete(post.id, post.title)}
             className="gap-1.5 text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors"
-            style={{ 
-              fontWeight: '500',
-              letterSpacing: '0.01em'
-            }}
           >
             <Trash2 className="w-4 h-4" />
             删除

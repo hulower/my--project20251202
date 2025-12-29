@@ -11,31 +11,35 @@ function ArticleToc({ content }) {
   const [activeId, setActiveId] = useState('');
 
   useEffect(() => {
-    // 从文章内容中提取标题（简单实现：按行分割，查找以 # 开头的行）
+    // 从 HTML 内容中提取标题
     if (!content) return;
 
-    const lines = content.split('\n');
-    const extractedHeadings = [];
-    
-    lines.forEach((line, index) => {
-      const trimmedLine = line.trim();
+    try {
+      // 创建一个临时 DOM 元素来解析 HTML
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(content, 'text/html');
       
-      // 匹配 Markdown 标题格式 (# 标题)
-      const match = trimmedLine.match(/^(#{1,6})\s+(.+)$/);
-      if (match) {
-        const level = match[1].length; // # 的数量决定层级
-        const text = match[2];
-        const id = `heading-${index}`;
+      // 查找所有标题元素 (h1-h6)
+      const headingElements = doc.querySelectorAll('h1, h2, h3, h4, h5, h6');
+      const extractedHeadings = [];
+      
+      headingElements.forEach((element, index) => {
+        const level = parseInt(element.tagName.substring(1)); // h1 -> 1, h2 -> 2
+        const text = element.textContent.trim();
+        const id = `heading-${index}`; // 使用索引作为 ID
         
         extractedHeadings.push({
           id,
           text,
           level,
         });
-      }
-    });
+      });
 
-    setHeadings(extractedHeadings);
+      setHeadings(extractedHeadings);
+    } catch (error) {
+      console.error('解析文章标题失败:', error);
+      setHeadings([]);
+    }
   }, [content]);
 
   // 监听滚动，高亮当前阅读位置的标题

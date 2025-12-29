@@ -105,7 +105,7 @@ function NoteCard({ post, onEdit, onDelete }) {
         >
           <div className="absolute -left-2 top-0 w-1 h-full bg-gradient-to-b from-green-500/50 to-transparent rounded-full group-hover/content:from-green-600/70 transition-colors" />
           <p 
-            className="text-base text-gray-700 dark:text-gray-300 line-clamp-3 pl-3"
+            className="text-base text-gray-700 dark:text-gray-300 line-clamp-4 pl-3"
             style={{ 
               fontWeight: '400', 
               letterSpacing: '0.02em',
@@ -160,7 +160,7 @@ function NoteCard({ post, onEdit, onDelete }) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onDelete(post.id)}
+            onClick={() => onDelete(post.id, post.title)}
             className="gap-1.5 text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors"
           >
             <Trash2 className="w-4 h-4" />
