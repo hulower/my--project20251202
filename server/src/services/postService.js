@@ -391,6 +391,38 @@ class PostService {
     const updated = await postRepository.updatePostCover(id, coverPath);
     return updated;
   }
+
+  // ========================================
+  // 浏览量统计
+  // ========================================
+  
+  /**
+   * 增加文章浏览量
+   * @param {number} id - 文章 ID
+   * @returns {Promise<Object>} 更新后的文章对象
+   * @throws {Error} 如果文章不存在，抛出 404 错误
+   * 
+   * 业务逻辑：
+   * 1. 调用 Repository 增加浏览量
+   * 2. 如果文章不存在，抛出 404 错误
+   * 3. 返回更新后的文章信息
+   * 
+   * 扩展：可以添加防刷机制
+   * - 同一 IP 或用户在短时间内重复访问不增加浏览量
+   * - 可以使用 Redis 存储访问记录，设置过期时间（如 30 分钟）
+   */
+  async incrementViewCount(id) {
+    const updated = await postRepository.incrementViewCount(id);
+    
+    // 文章不存在时的处理
+    if (!updated) {
+      const error = new Error('文章不存在');
+      error.statusCode = 404;
+      throw error;
+    }
+    
+    return updated;
+  }
 }
 
 // ========================================

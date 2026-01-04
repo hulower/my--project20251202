@@ -74,3 +74,12 @@ export function removeCoverImage(id) {
   return del(`/api/posts/${id}/cover`);
 }
 
+/**
+ * 增加文章浏览量
+ * @param {number} id - 文章 ID
+ * @returns {Promise} - 更新后的文章对象
+ */
+export function incrementViewCount(id) {
+  return post(`/api/posts/${id}/view`);
+}
+

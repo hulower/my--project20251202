@@ -1,19 +1,21 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../../../components/ui/card';
+import { Card, CardContent, CardFooter } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
-import { Separator } from '../../../components/ui/separator';
-import { Calendar, Tag, Edit, Trash2 } from 'lucide-react';
+import { Badge } from '../../../components/ui/badge';
+import { Calendar, Eye, BookOpen, Edit, Trash2 } from 'lucide-react';
+import { RoleGuard } from '../../../components/ProtectedRoute';
+import { getTextLength, calculateReadingTime } from '../../../utils/textUtils';
 
 function PostCard({ post, onEdit, onDelete }) {
   const navigate = useNavigate();
   
   // 跳转到文章详情页
   const handleViewDetail = () => {
-    // 优先使用 slug，如果没有 slug 则使用 ID（向后兼容）
     const identifier = post.slug || post.id;
     navigate(`/blog/post/${identifier}`);
   };
+
   // 格式化日期
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -25,124 +27,116 @@ function PostCard({ post, onEdit, onDelete }) {
   };
 
   // 根据分类获取标签样式
-  const getCategoryBadge = () => {
+  const getCategoryStyle = () => {
     const category = post.category || '技术博客';
     const styles = {
       '技术博客': {
-        bg: 'bg-blue-500',
-        text: 'text-white',
-        icon: '📝',
+        color: 'bg-blue-500',
         label: '技术博客'
       },
       '说说': {
-        bg: 'bg-orange-500',
-        text: 'text-white',
-        icon: '💬',
-        label: '说说'
+        color: 'bg-orange-500',
+        label: '心情随笔'
       },
       '学习笔记': {
-        bg: 'bg-green-500',
-        text: 'text-white',
-        icon: '📚',
+        color: 'bg-green-500',
         label: '学习笔记'
       }
     };
     return styles[category] || styles['技术博客'];
   };
 
-  const categoryStyle = getCategoryBadge();
+  const categoryStyle = getCategoryStyle();
+  
+  // 计算字数和阅读时长
+  const wordCount = getTextLength(post.content || '');
+  const readingTime = calculateReadingTime(post.content || '');
+  
+  // 获取配图URL（优先使用后端存储的配图，否则使用默认图片）
+  const coverUrl = post.coverImage || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800';
 
   return (
-    <Card className="group relative overflow-hidden hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 border-0 bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50">
-      {/* 装饰性渐变背景 */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700" />
-      
-      <CardHeader className="pb-3 relative">
-        {/* 分类标签 */}
-        <div className="mb-4">
-          <div 
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${categoryStyle.bg} ${categoryStyle.text} text-sm font-medium shadow-lg`}
-            style={{ 
-              fontWeight: '600',
-              letterSpacing: '0.01em'
-            }}
-          >
-            <span>{categoryStyle.icon}</span>
-            <span>{categoryStyle.label}</span>
+    <Card className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700">
+      {/* 分类标签 - 右上角 */}
+      <div className="absolute top-4 right-4 z-10">
+        <Badge className={`${categoryStyle.color} text-white px-3 py-1 text-xs font-medium`}>
+          {categoryStyle.label}
+        </Badge>
+      </div>
+
+      <CardContent className="p-6 space-y-4">
+        {/* 标题 - 居中 */}
+        <h3 
+          onClick={handleViewDetail}
+          className="text-2xl font-bold text-center cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-2 min-h-[4rem] flex items-center justify-center"
+        >
+          {post.title || '未命名'}
+        </h3>
+
+        {/* 元信息 - 一行显示 */}
+        <div className="flex items-center justify-center gap-4 text-sm text-gray-600 dark:text-gray-400 flex-wrap">
+          {/* 日期 */}
+          <div className="flex items-center gap-1.5">
+            <Calendar className="w-4 h-4" />
+            <span>{formatDate(post.createdAt)}</span>
+          </div>
+          
+          {/* 字数 */}
+          <div className="flex items-center gap-1.5">
+            <BookOpen className="w-4 h-4" />
+            <span>{wordCount}字</span>
+          </div>
+          
+          {/* 热度 */}
+          <div className="flex items-center gap-1.5">
+            <Eye className="w-4 h-4" />
+            <span>{post.views || 0}次</span>
+          </div>
+          
+          {/* 阅读时长 */}
+          <div className="flex items-center gap-1.5">
+            <span>⏱️</span>
+            <span>约{readingTime}分钟</span>
           </div>
         </div>
 
-        {/* 标题 */}
-        <CardTitle 
-          onClick={handleViewDetail}
-          className="text-2xl font-bold hover:text-primary transition-colors cursor-pointer bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300"
-          style={{ 
-            fontWeight: '700',
-            letterSpacing: '-0.01em',
-            lineHeight: '1.3'
-          }}
-        >
-          {post.title || '未命名'}
-        </CardTitle>
-      </CardHeader>
-
-      <Separator className="bg-blue-100 dark:bg-blue-900/30" />
-
-      <CardContent className="pt-5">
+        {/* 配图 - 固定16:9比例，优雅显示 */}
         <div 
           onClick={handleViewDetail}
-          className="relative cursor-pointer group/content"
+          className="relative w-full aspect-video rounded-lg overflow-hidden cursor-pointer group-hover:opacity-95 transition-opacity bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900"
         >
-          <div className="absolute -left-2 top-0 w-1 h-full bg-gradient-to-b from-blue-500/50 to-transparent rounded-full group-hover/content:from-blue-600/70 transition-colors" />
-          <p 
-            className="text-base text-gray-700 dark:text-gray-300 line-clamp-4 pl-3"
-            style={{ 
-              fontWeight: '400',
-              letterSpacing: '0.02em',
-              lineHeight: '1.8'
+          <img
+            src={coverUrl}
+            alt={post.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            onError={(e) => {
+              e.target.src = 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800';
             }}
+          />
+          {/* 图片遮罩 */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
+
+        {/* 阅读全文按钮 */}
+        <div className="flex justify-center">
+          <Button
+            onClick={handleViewDetail}
+            className="px-8 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium"
+            size="sm"
           >
-            {post.content}
-          </p>
+            阅读全文
+          </Button>
         </div>
       </CardContent>
 
-      <Separator className="bg-blue-100 dark:bg-blue-900/30" />
-
-      <CardFooter className="pt-4 flex items-center justify-between">
-        {/* 元信息 */}
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5" />
-            <span
-              style={{ 
-                fontWeight: '400', 
-                letterSpacing: '0.01em' 
-              }}
-            >
-              {formatDate(post.createdAt)}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Tag className="w-3.5 h-3.5" />
-            <span
-              style={{ 
-                fontWeight: '400', 
-                letterSpacing: '0.01em' 
-              }}
-            >
-              {post.content?.length || 0} 字
-            </span>
-          </div>
-        </div>
-
-        {/* 操作按钮 */}
-        <div className="flex gap-2">
+      {/* 管理员操作按钮 */}
+      <RoleGuard roles={['editor', 'admin']}>
+        <CardFooter className="pt-0 px-6 pb-4 flex gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => onEdit(post)}
-            className="gap-1.5 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors"
+            className="flex-1 gap-1.5 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors"
           >
             <Edit className="w-4 h-4" />
             编辑
@@ -151,19 +145,15 @@ function PostCard({ post, onEdit, onDelete }) {
             variant="outline"
             size="sm"
             onClick={() => onDelete(post.id, post.title)}
-            className="gap-1.5 text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors"
+            className="flex-1 gap-1.5 text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors"
           >
             <Trash2 className="w-4 h-4" />
             删除
           </Button>
-        </div>
-      </CardFooter>
+        </CardFooter>
+      </RoleGuard>
     </Card>
   );
 }
 
 export default PostCard;
-
-
-
-

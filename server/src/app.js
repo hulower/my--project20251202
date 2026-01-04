@@ -7,6 +7,9 @@ const postRoutes = require('./routes/postRoutes');
 const userRoutes = require('./routes/userRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const musicRoutes = require('./routes/musicRoutes');
+const authRoutes = require('./routes/authRoutes');
+const commentRoutes = require('./routes/commentRoutes');
+const likeRoutes = require('./routes/likeRoutes');
 
 function createApp() {
   const app = express();
@@ -28,6 +31,9 @@ function createApp() {
   // 健康檢查 / 基礎接口
   app.use('/api', healthRoutes);
 
+  // 认证相关接口
+  app.use('/api/auth', authRoutes);
+
   // 博客相關接口
   app.use('/api/posts', postRoutes);
 
@@ -39,6 +45,12 @@ function createApp() {
 
   // 音乐相关接口
   app.use('/api/music', musicRoutes);
+
+  // 评论相关接口
+  app.use('/api', commentRoutes);
+
+  // 点赞相关接口
+  app.use('/api', likeRoutes);
 
   // 統一錯誤處理
   // eslint-disable-next-line no-unused-vars

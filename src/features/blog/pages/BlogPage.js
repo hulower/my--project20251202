@@ -30,6 +30,7 @@ import { PenSquare, Loader2, AlertCircle, FileText, Image as ImageIcon, X } from
 import { useToast } from '../../../hooks/use-toast';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import RichTextEditor from '../../../components/RichTextEditor/RichTextEditor';
+import { RoleGuard } from '../../../components/ProtectedRoute';
 
 function BlogPage() {
   const { toast } = useToast();
@@ -112,10 +113,10 @@ function BlogPage() {
     tags: Math.floor(totalPosts * 2.5),
   };
 
-  // 当分类或页码改变时，重新加载文章
+  // 主加载逻辑：当分类、页码或路由改变时，重新加载文章
   useEffect(() => {
     loadPosts(currentPage, currentCategory);
-  }, [currentPage, currentCategory]);
+  }, [currentPage, currentCategory, location.pathname]); // 添加 location.pathname 监听路由变化
 
   // 当分类改变时，重置到第一页
   useEffect(() => {
@@ -359,56 +360,38 @@ function BlogPage() {
       {/* Hero Section - 只在个人博客主页显示 */}
       {showHeroSection && <HeroSection onScrollToContent={scrollToContent} />}
 
-      {/* Content Section */}
+      {/* Content Section - 三栏布局：左侧信息 + 中间内容 + 右侧空白 */}
       <div 
         ref={contentRef} 
-        className="flex min-h-screen" 
+        className="grid grid-cols-1 lg:grid-cols-5 min-h-screen" 
         style={{ 
           scrollMarginTop: '60px',
           paddingTop: showHeroSection ? '0' : '80px' // 子页面添加顶部间距
         }}
       >
-        {/* 左侧边栏 */}
-        <Sidebar stats={stats} />
+        {/* 左侧边栏 - 个人信息展示（1列，20%） */}
+        <div className="lg:col-span-1 p-8">
+          <Sidebar stats={stats} />
+        </div>
 
-      {/* 右侧主内容区 */}
-      <main className="flex-1 p-8 backdrop-blur-sm bg-white/10">
+        {/* 中间主内容区 - 文章卡片（3列，60%） */}
+        <main className="lg:col-span-3 p-8 backdrop-blur-sm ">
         {/* 顶部操作栏 */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 
-              className="text-4xl font-bold mb-2"
+        <div className="flex items-center justify-end ">
+          <RoleGuard roles={['editor', 'admin']}>
+            <Button 
+              onClick={() => setShowModal(true)} 
+              size="lg" 
+              className="gap-2"
               style={{ 
-                fontWeight: '700',
-                letterSpacing: '0.01em',
-                lineHeight: '1.2'
+                fontWeight: '500',
+                letterSpacing: '0.01em'
               }}
             >
-              {pageInfo.title}
-            </h1>
-            <p 
-              className="text-muted-foreground"
-              style={{ 
-                fontWeight: '400',
-                letterSpacing: '0.01em',
-                lineHeight: '1.5'
-              }}
-            >
-              {pageInfo.description}
-            </p>
-          </div>
-          <Button 
-            onClick={() => setShowModal(true)} 
-            size="lg" 
-            className="gap-2"
-            style={{ 
-              fontWeight: '500',
-              letterSpacing: '0.01em'
-            }}
-          >
-            <PenSquare className="w-5 h-5" />
-            {pageInfo.buttonText}
-          </Button>
+              <PenSquare className="w-5 h-5" />
+              {pageInfo.buttonText}
+            </Button>
+          </RoleGuard>
         </div>
 
         {/* 文章列表 */}
@@ -434,10 +417,12 @@ function BlogPage() {
                 : '还没有文章，点击"写文章"开始创作吧！'
               }
             </p>
-            <Button onClick={() => setShowModal(true)} variant="outline" className="gap-2">
-              <PenSquare className="w-4 h-4" />
-              {pageInfo.buttonText}
-            </Button>
+            <RoleGuard roles={['editor', 'admin']}>
+              <Button onClick={() => setShowModal(true)} variant="outline" className="gap-2">
+                <PenSquare className="w-4 h-4" />
+                {pageInfo.buttonText}
+              </Button>
+            </RoleGuard>
           </div>
         ) : (
           <div className="space-y-6">
@@ -484,7 +469,11 @@ function BlogPage() {
             onPageChange={handlePageChange}
           />
         )}
-      </main>
+        </main>
+
+        {/* 右侧空白区域 - 用于平衡布局（1列，20%） */}
+        <div className="hidden lg:block lg:col-span-1 backdrop-blur-sm bg-white/5"></div>
+      </div>
 
       {/* 编辑/新建文章对话框 */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
@@ -555,7 +544,7 @@ function BlogPage() {
               </label>
               
               {coverImagePreview ? (
-                <div className="relative w-full h-32 rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-100">
+                <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50 dark:bg-gray-900">
                   <img 
                     src={coverImagePreview} 
                     alt="封面预览" 
@@ -564,7 +553,7 @@ function BlogPage() {
                   <button
                     type="button"
                     onClick={handleRemoveCoverImage}
-                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg z-10"
                     title="删除封面"
                   >
                     <X className="w-4 h-4" />
@@ -573,11 +562,12 @@ function BlogPage() {
               ) : (
                 <div
                   onClick={() => document.getElementById('cover-image-upload').click()}
-                  className="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-50 transition-all"
+                  className="w-full aspect-video border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-50 transition-all"
                 >
-                  <ImageIcon className="w-10 h-10 text-gray-400 mb-1" />
-                  <p className="text-sm text-gray-600">点击上传封面图片</p>
-                  <p className="text-xs text-gray-400 mt-1">支持 JPG、PNG、WEBP（5MB）</p>
+                  <ImageIcon className="w-10 h-10 text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-600 font-medium">点击上传封面图片</p>
+                  <p className="text-xs text-gray-400 mt-1">推荐尺寸: 1200×675 (16:9)</p>
+                  <p className="text-xs text-gray-400">支持 JPG、PNG、WEBP (最大5MB)</p>
                 </div>
               )}
               
@@ -636,7 +626,6 @@ function BlogPage() {
         cancelText="取消"
         confirmVariant="destructive"
       />
-      </div>
     </div>
   );
 }

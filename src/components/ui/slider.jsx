@@ -35,7 +35,7 @@ const Slider = React.forwardRef(({
         className={cn(
           "w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer",
           "dark:bg-gray-700",
-          "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+          "focus:outline-none",
           "disabled:opacity-50 disabled:cursor-not-allowed",
           // Webkit (Chrome, Safari) - 默认隐藏，hover 时显示
           "[&::-webkit-slider-thumb]:appearance-none",

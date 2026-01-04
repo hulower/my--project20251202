@@ -179,6 +179,23 @@ async function removeCover(req, res, next) {
   }
 }
 
+/**
+ * 增加文章浏览量
+ * POST /api/posts/:id/view
+ */
+async function incrementView(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    console.log('📥 收到请求: POST /api/posts/:id/view', { id });
+
+    const updatedPost = await postService.incrementViewCount(id);
+    
+    Response.success(res, updatedPost, '浏览量更新成功');
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   listPosts,
   getPost,
@@ -188,5 +205,6 @@ module.exports = {
   deletePost,
   uploadCover,
   removeCover,
+  incrementView,
 };
 

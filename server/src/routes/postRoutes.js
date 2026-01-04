@@ -156,6 +156,21 @@ router.post('/:id/cover', postController.uploadCover);
  */
 router.delete('/:id/cover', postController.removeCover);
 
+/**
+ * 增加文章浏览量
+ * @route POST /api/posts/:id/view
+ * @description 增加指定文章的浏览量
+ * @param {number} id - 文章 ID（路径参数）
+ * @access Public
+ * 
+ * 完整 URL：http://localhost:5001/api/posts/1/view
+ * 
+ * POST 用于增加浏览量
+ * 每次访问文章详情页时，前端自动调用此接口
+ * 浏览量会自动 +1
+ */
+router.post('/:id/view', postController.incrementView);
+
 // ========================================
 // 导出路由
 // ========================================

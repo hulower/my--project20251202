@@ -3,6 +3,7 @@ import { Card, CardContent } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Separator } from '../../../components/ui/separator';
 import { Calendar, Clock, Eye, Type, Tag } from 'lucide-react';
+import { getTextLength, calculateReadingTime } from '../../../utils/textUtils';
 
 /**
  * ArticleMetaInfo - 文章元信息组件
@@ -43,8 +44,8 @@ function ArticleMetaInfo({ post, inline = false }) {
   };
 
   const categoryStyle = getCategoryStyle(post.category);
-  const readingTime = calculateReadingTime(post.content);
-  const wordCount = post.content?.length || 0;
+  const wordCount = getTextLength(post.content || '');
+  const readingTime = calculateReadingTime(post.content || '');
 
   // 内联模式 - 用于文章头部
   if (inline) {

@@ -9,10 +9,12 @@ import { Home, Folder, Archive, Sparkles, Link2, User, Rss, Camera, Loader2, Git
 import { useToast } from '../../../hooks/use-toast';
 import * as userApi from '../../../api/userApi';
 import { API_BASE } from '../../../api/httpClient';
+import { useAuth } from '../../../contexts/AuthContext';
 
 function Sidebar({ stats = { posts: 0, categories: 0, tags: 0 } }) {
   const { toast } = useToast();
   const location = useLocation();
+  const { user: currentUser, isAuthenticated } = useAuth();
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -37,13 +39,15 @@ function Sidebar({ stats = { posts: 0, categories: 0, tags: 0 } }) {
   // 组件加载时从后端获取用户信息
   useEffect(() => {
     fetchUserInfo();
-  }, []);
+  }, [currentUser?.id]);
 
   // 从后端获取用户信息
   const fetchUserInfo = async () => {
     try {
       setLoading(true);
-      const data = await userApi.fetchUserById(1); // 调用 API 层
+      // 如果已登录，显示当前登录用户；否则显示默认用户（ID=1）
+      const userId = isAuthenticated && currentUser?.id ? currentUser.id : 1;
+      const data = await userApi.fetchUserById(userId); // 调用 API 层
       
       // 如果有头像 URL，设置完整路径
       if (data.avatarUrl) {
@@ -124,7 +128,7 @@ function Sidebar({ stats = { posts: 0, categories: 0, tags: 0 } }) {
   ];
 
   return (
-    <aside className="w-80 space-y-4 p-4 backdrop-blur-sm bg-white/10">
+    <aside className="space-y-4 backdrop-blur-sm bg-white/10">
       {/* 个人信息卡片 */}
       <Card>
         <CardHeader className="text-center pb-3">

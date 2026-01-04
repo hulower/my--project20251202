@@ -5,7 +5,7 @@
  * ============================================
  */
 
-import { get, put, upload } from './httpClient';
+import { get, put, upload, post, del } from './httpClient';
 
 /**
  * 获取用户信息
@@ -35,5 +35,24 @@ export function uploadAvatar(file) {
   const formData = new FormData();
   formData.append('avatar', file);
   return upload('/api/upload/avatar', formData);
+}
+
+/**
+ * 修改密码
+ * @param {Object} payload - 密码信息
+ * @param {string} payload.currentPassword - 当前密码
+ * @param {string} payload.newPassword - 新密码
+ * @returns {Promise<Object>} 修改结果
+ */
+export function changePassword(payload) {
+  return post('/api/auth/change-password', payload);
+}
+
+/**
+ * 删除账号
+ * @returns {Promise<Object>} 删除结果
+ */
+export function deleteAccount() {
+  return del('/api/auth/delete-account');
 }
 

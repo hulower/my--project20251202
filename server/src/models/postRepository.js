@@ -47,7 +47,7 @@ async function listPosts() {
   // 执行查询
   // db.query() 返回 [rows, fields]，我们只需要 rows（查询结果）
   const [rows] = await db.query(
-    'SELECT id, title, slug, content, category, cover_image as coverImage, music_id as musicId, created_at as createdAt, updated_at as updatedAt FROM posts ORDER BY created_at DESC'
+    'SELECT id, title, slug, content, category, cover_image as coverImage, music_id as musicId, view_count as viewCount, likes_count as likesCount, comments_count as commentsCount, created_at as createdAt, updated_at as updatedAt FROM posts ORDER BY created_at DESC'
   );
   return rows;
 }
@@ -92,7 +92,7 @@ async function listPostsWithPagination({ page = 1, pageSize = 10, category = nul
   
   // 4. 查询当前页数据
   const dataSql = `
-    SELECT id, title, slug, content, category, cover_image as coverImage, music_id as musicId, created_at as createdAt, updated_at as updatedAt 
+    SELECT id, title, slug, content, category, cover_image as coverImage, music_id as musicId, view_count as viewCount, likes_count as likesCount, comments_count as commentsCount, created_at as createdAt, updated_at as updatedAt 
     FROM posts 
     ${whereClause}
     ORDER BY created_at DESC 
@@ -128,7 +128,7 @@ async function listPostsWithPagination({ page = 1, pageSize = 10, category = nul
  */
 async function findPostById(id) {
   const [rows] = await db.query(
-    'SELECT id, title, slug, content, category, cover_image as coverImage, music_id as musicId, created_at as createdAt, updated_at as updatedAt FROM posts WHERE id = ?',
+    'SELECT id, title, slug, content, category, cover_image as coverImage, music_id as musicId, view_count as viewCount, likes_count as likesCount, comments_count as commentsCount, created_at as createdAt, updated_at as updatedAt FROM posts WHERE id = ?',
     [id] // 参数数组，对应 SQL 中的 ?
   );
   
@@ -150,7 +150,7 @@ async function findPostById(id) {
  */
 async function findPostBySlug(slug) {
   const [rows] = await db.query(
-    'SELECT id, title, slug, content, category, cover_image as coverImage, music_id as musicId, created_at as createdAt, updated_at as updatedAt FROM posts WHERE slug = ?',
+    'SELECT id, title, slug, content, category, cover_image as coverImage, music_id as musicId, view_count as viewCount, likes_count as likesCount, comments_count as commentsCount, created_at as createdAt, updated_at as updatedAt FROM posts WHERE slug = ?',
     [slug]
   );
   
@@ -296,6 +296,31 @@ async function updatePostCover(id, coverPath) {
   return findPostById(id);
 }
 
+/**
+ * 增加文章浏览量
+ * @param {number} id - 文章 ID
+ * @returns {Promise<Object|null>} 更新后的文章对象，如果文章不存在返回 null
+ * 
+ * SQL 说明：
+ * - view_count = view_count + 1: 浏览量加 1
+ * - 使用原子操作，避免并发问题
+ */
+async function incrementViewCount(id) {
+  // 执行浏览量 +1 操作
+  const [result] = await db.query(
+    'UPDATE posts SET view_count = view_count + 1 WHERE id = ?',
+    [id]
+  );
+  
+  // 检查是否更新成功
+  if (result.affectedRows === 0) {
+    return null; // 文章不存在
+  }
+  
+  // 查询并返回更新后的完整文章信息
+  return findPostById(id);
+}
+
 // ========================================
 // 导出所有函数
 // ========================================
@@ -315,5 +340,6 @@ module.exports = {
   updatePost,                 // 更新
   deletePost,                 // 删除
   updatePostCover,            // 更新封面
+  incrementViewCount,         // 增加浏览量
 };
 

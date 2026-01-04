@@ -12,6 +12,7 @@ const sharp = require('sharp');
 const fs = require('fs').promises;
 const uploadService = require('../services/uploadService');
 const { success, error: errorResponse, CODE } = require('../utils/response');
+const uploadContentImage = require('../middleware/contentImageUpload');
 
 // 配置 multer 存储
 const storage = multer.diskStorage({
@@ -100,11 +101,15 @@ async function uploadAvatar(req, res, next) {
       // 构建文件 URL
       const avatarUrl = `/uploads/avatars/${optimizedFilename}`;
       
-      // 保存到数据库（默认用户 ID 为 1）
-      const userId = 1; // TODO: 实际应该从 session/token 获取
+      // 从认证中间件获取当前用户 ID
+      if (!req.user || !req.user.id) {
+        return errorResponse(res, '未登录或用户信息无效', CODE.UNAUTHORIZED, 401);
+      }
+      
+      const userId = req.user.id; // 从 JWT Token 获取当前用户 ID
       const user = await uploadService.handleAvatarUpload(userId, avatarUrl);
 
-      console.log('✅ 头像上传成功:', avatarUrl);
+      console.log('✅ 头像上传成功:', { userId, avatarUrl });
 
       // 返回统一格式响应
       success(res, { url: avatarUrl, user }, '头像上传成功', CODE.CREATED);
@@ -122,7 +127,59 @@ async function uploadAvatar(req, res, next) {
   });
 }
 
+/**
+ * 上传文章内容图片
+ * POST /api/upload/content-image
+ */
+async function uploadContentImage_handler(req, res, next) {
+  console.log('📥 收到上传请求: POST /api/upload/content-image');
+  
+  // 使用 multer 中间件处理上传
+  uploadContentImage.single('image')(req, res, async (err) => {
+    if (err instanceof multer.MulterError) {
+      // Multer 错误
+      console.error('❌ Multer 错误:', err);
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return errorResponse(res, '文件大小不能超过 5MB', CODE.BAD_REQUEST, 400);
+      }
+      return errorResponse(res, err.message, CODE.BAD_REQUEST, 400);
+    } else if (err) {
+      // 其他错误
+      console.error('❌ 上传错误:', err);
+      return errorResponse(res, err.message, CODE.BAD_REQUEST, 400);
+    }
+
+    try {
+      if (!req.file) {
+        return errorResponse(res, '请选择图片文件', CODE.BAD_REQUEST, 400);
+      }
+
+      console.log('✅ 文件上传成功:', req.file);
+
+      // 构建图片 URL
+      const imagePath = `/uploads/content/images/${req.file.filename}`;
+      const imageUrl = `${process.env.API_BASE_URL || 'http://localhost:5001'}${imagePath}`;
+
+      console.log('✅ 图片 URL:', imageUrl);
+
+      // 返回图片 URL
+      success(res, { url: imageUrl }, '图片上传成功', CODE.CREATED);
+    } catch (error) {
+      // 如果处理失败，尝试删除已上传的文件
+      if (req.file) {
+        try {
+          await fs.unlink(req.file.path);
+        } catch (unlinkError) {
+          console.error('删除文件失败:', unlinkError);
+        }
+      }
+      next(error);
+    }
+  });
+}
+
 module.exports = {
-  uploadAvatar
+  uploadAvatar,
+  uploadContentImage: uploadContentImage_handler,
 };
 

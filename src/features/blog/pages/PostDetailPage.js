@@ -14,23 +14,24 @@ import {
 } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
 import ConfirmDialog from '../../../components/ConfirmDialog';
-import Sidebar from '../components/Sidebar';
+// import Sidebar from '../components/Sidebar'; // 移除左侧栏
 import ArticleMetaInfo from '../components/ArticleMetaInfo';
 import ArticleToc from '../components/ArticleToc';
-import RelatedPosts from '../components/RelatedPosts';
 import ReadingProgress from '../components/ReadingProgress';
 import ArticleMusicPlayer from '../../../components/ArticleMusicPlayer/ArticleMusicPlayer';
+import Comments from '../../../components/Comments/Comments';
+import LikeButton from '../../../components/LikeButton/LikeButton';
 import '../styles/article-content.css';
 import '../../../components/RichTextEditor/rich-text-editor.css';
 
 /**
- * PostDetailPage - 文章详情页（三栏布局）
+ * PostDetailPage - 文章详情页（居中两栏布局）
  * 路由：/blog/post/:slug
  * 
  * 布局：
- * - 左侧栏：作者信息（复用 Sidebar）
- * - 中间：文章标题、元信息、内容主体
- * - 右侧栏：相关推荐、文章目录
+ * - 左侧留白（1列 / 8.3%）
+ * - 主内容区（8列 / 66.7%）：文章标题、元信息、内容主体、评论
+ * - 右侧栏（3列 / 25%）：文章目录
  */
 function PostDetailPage() {
   const { toast } = useToast();
@@ -75,6 +76,22 @@ function PostDetailPage() {
       
       setPost(data);
       setError(null);
+
+      // 增加浏览量（异步调用，不影响页面加载）
+      if (data && data.id) {
+        blogApi.incrementViewCount(data.id)
+          .then(updatedPost => {
+            // 更新本地的浏览量显示
+            setPost(prev => ({
+              ...prev,
+              viewCount: updatedPost.viewCount
+            }));
+          })
+          .catch(err => {
+            console.warn('浏览量更新失败:', err);
+            // 浏览量更新失败不影响页面正常显示，只记录警告
+          });
+      }
     } catch (err) {
       console.error('加载文章失败:', err);
       setError('文章不存在或已被删除');
@@ -152,19 +169,15 @@ function PostDetailPage() {
       <ReadingProgress />
 
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
-        {/* 三栏布局主体 */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
-            {/* 左侧栏 - 作者信息 */}
-            <aside className="hidden lg:block lg:col-span-3">
-              <div className="sticky top-24">
-                <Sidebar />
-              </div>
-            </aside>
+        {/* 两栏布局主体 - 居中布局，左右留白 */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
 
-            {/* 中间 - 文章内容主体 */}
-            <main className="lg:col-span-6">
+            {/* 左侧空白区域 - 1列用于居中 */}
+            <div className="hidden lg:block lg:col-span-1"></div>
+
+            {/* 主内容区 - 8列（约66.7%宽度） */}
+            <main className="lg:col-span-8">
               <article className="bg-white dark:bg-gray-800/50 rounded-lg shadow-sm p-6 sm:p-8">
                 {/* 文章标题 */}
                 <h1 
@@ -201,22 +214,7 @@ function PostDetailPage() {
                   <div className="flex items-center justify-between flex-wrap gap-4">
                     {/* 互动按钮 */}
                     <div className="flex items-center gap-4">
-                      <Button
-                        variant="outline"
-                        className="gap-2"
-                        style={{ fontWeight: '500', letterSpacing: '0.01em' }}
-                      >
-                        <Heart className="w-4 h-4" />
-                        点赞 (0)
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="gap-2"
-                        style={{ fontWeight: '500', letterSpacing: '0.01em' }}
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                        评论 (0)
-                      </Button>
+                      <LikeButton postId={post.id} />
                     </div>
 
                     {/* 返回列表 */}
@@ -233,32 +231,16 @@ function PostDetailPage() {
                 </div>
               </article>
 
-              {/* 评论区（预留） */}
+              {/* 评论区 */}
               <div className="mt-8 bg-white dark:bg-gray-800/50 rounded-lg shadow-sm p-6 sm:p-8">
-                <h2 
-                  className="text-xl font-bold mb-4 flex items-center gap-2"
-                  style={{ fontWeight: '700', letterSpacing: '0.01em' }}
-                >
-                  <MessageCircle className="w-5 h-5 text-blue-500" />
-                  评论区
-                </h2>
-                <p className="text-gray-500 dark:text-gray-400 text-center py-8" style={{ fontWeight: '400', letterSpacing: '0.01em' }}>
-                  暂无评论，快来发表你的看法吧~
-                </p>
+                <Comments postId={post.id} />
               </div>
             </main>
 
-            {/* 右侧栏 - 相关推荐、目录 */}
-            <aside className="lg:col-span-3">
-              <div className="space-y-6">
-                {/* 相关推荐 - 移到最上面 */}
-                <RelatedPosts 
-                  currentPostId={post.id} 
-                  category={post.category} 
-                  limit={5} 
-                />
-
-                {/* 文章目录 - 在相关推荐下面 */}
+            {/* 右侧栏 - 文章目录（缩小到 3 列，25%宽度） */}
+            <aside className="hidden lg:block lg:col-span-3">
+              <div className="sticky top-24 space-y-6">
+                {/* 文章目录 */}
                 <ArticleToc content={post.content} />
               </div>
             </aside>
