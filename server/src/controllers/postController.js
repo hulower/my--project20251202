@@ -196,6 +196,44 @@ async function incrementView(req, res, next) {
   }
 }
 
+/**
+ * 获取归档数据
+ * GET /api/posts/archives
+ */
+async function getArchives(req, res, next) {
+  try {
+    console.log('📥 收到请求: GET /api/posts/archives');
+    
+    const archives = await postService.getArchives();
+    
+    Response.success(res, archives, '获取归档数据成功');
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * 搜索文章
+ * GET /api/posts/search?q=关键词&limit=10
+ */
+async function searchPosts(req, res, next) {
+  try {
+    const { q: keyword, limit } = req.query;
+    
+    console.log('📥 收到请求: GET /api/posts/search', { keyword, limit });
+    
+    if (!keyword || keyword.trim() === '') {
+      return Response.success(res, [], '搜索关键词为空');
+    }
+    
+    const results = await postService.searchPosts(keyword, limit ? parseInt(limit) : 10);
+    
+    Response.success(res, results, '搜索成功');
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   listPosts,
   getPost,
@@ -206,5 +244,7 @@ module.exports = {
   uploadCover,
   removeCover,
   incrementView,
+  getArchives,
+  searchPosts,
 };
 

@@ -6,6 +6,7 @@ import { Badge } from '../../../components/ui/badge';
 import { Calendar, Eye, BookOpen, Edit, Trash2 } from 'lucide-react';
 import { RoleGuard } from '../../../components/ProtectedRoute';
 import { getTextLength, calculateReadingTime } from '../../../utils/textUtils';
+import PostTags from './PostTags';
 
 function PostCard({ post, onEdit, onDelete }) {
   const navigate = useNavigate();
@@ -90,7 +91,7 @@ function PostCard({ post, onEdit, onDelete }) {
           {/* 热度 */}
           <div className="flex items-center gap-1.5">
             <Eye className="w-4 h-4" />
-            <span>{post.views || 0}次</span>
+            <span>{post.viewCount || 0}次</span>
           </div>
           
           {/* 阅读时长 */}
@@ -127,6 +128,9 @@ function PostCard({ post, onEdit, onDelete }) {
             阅读全文
           </Button>
         </div>
+
+        {/* 标签 */}
+        <PostTags tags={post.tags} />
       </CardContent>
 
       {/* 管理员操作按钮 */}

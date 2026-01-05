@@ -8,6 +8,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { useToast } from '../../../hooks/use-toast';
 import * as userApi from '../../../api/userApi';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../../components/ui/card';
@@ -40,6 +41,7 @@ import {
 
 function SettingsPage() {
   const { user, logout } = useAuth();
+  const { themeMode, changeTheme } = useTheme();
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -620,19 +622,70 @@ function SettingsPage() {
                   <div>
                     <Label className="text-base font-medium mb-4 block">主题</Label>
                     <div className="grid grid-cols-3 gap-4">
-                      <button className="p-4 border rounded-lg hover:border-primary transition-colors">
-                        <div className="w-full h-20 bg-white border rounded mb-2" />
-                        <p className="text-sm font-medium">浅色</p>
+                      {/* 浅色主题 */}
+                      <button
+                        onClick={() => {
+                          changeTheme('light');
+                          toast({
+                            title: "✓ 主题已更新",
+                            description: "已切换至浅色主题",
+                          });
+                        }}
+                        className={`p-4 border-2 rounded-lg hover:border-primary transition-all ${
+                          themeMode === 'light' ? 'border-primary bg-primary/5' : 'border-gray-200'
+                        }`}
+                      >
+                        <div className="w-full h-20 bg-white border rounded mb-2 shadow-sm" />
+                        <p className={`text-sm font-medium ${themeMode === 'light' ? 'text-primary' : ''}`}>
+                          浅色
+                        </p>
                       </button>
-                      <button className="p-4 border rounded-lg hover:border-primary transition-colors">
-                        <div className="w-full h-20 bg-gray-900 border rounded mb-2" />
-                        <p className="text-sm font-medium">深色</p>
+
+                      {/* 深色主题 */}
+                      <button
+                        onClick={() => {
+                          changeTheme('dark');
+                          toast({
+                            title: "✓ 主题已更新",
+                            description: "已切换至深色主题",
+                          });
+                        }}
+                        className={`p-4 border-2 rounded-lg hover:border-primary transition-all ${
+                          themeMode === 'dark' ? 'border-primary bg-primary/5' : 'border-gray-200'
+                        }`}
+                      >
+                        <div className="w-full h-20 bg-gray-900 border border-gray-700 rounded mb-2" />
+                        <p className={`text-sm font-medium ${themeMode === 'dark' ? 'text-primary' : ''}`}>
+                          深色
+                        </p>
                       </button>
-                      <button className="p-4 border rounded-lg hover:border-primary transition-colors border-primary">
-                        <div className="w-full h-20 bg-gradient-to-r from-white to-gray-900 border rounded mb-2" />
-                        <p className="text-sm font-medium">自动</p>
+
+                      {/* 自动主题 */}
+                      <button
+                        onClick={() => {
+                          changeTheme('auto');
+                          toast({
+                            title: "✓ 主题已更新",
+                            description: "已设置为跟随系统主题",
+                          });
+                        }}
+                        className={`p-4 border-2 rounded-lg hover:border-primary transition-all ${
+                          themeMode === 'auto' ? 'border-primary bg-primary/5' : 'border-gray-200'
+                        }`}
+                      >
+                        <div className="w-full h-20 bg-gradient-to-r from-white to-gray-900 border rounded mb-2 shadow-sm" />
+                        <p className={`text-sm font-medium ${themeMode === 'auto' ? 'text-primary' : ''}`}>
+                          自动
+                        </p>
                       </button>
                     </div>
+                    
+                    {/* 提示文本 */}
+                    <p className="text-sm text-muted-foreground mt-4">
+                      {themeMode === 'light' && '当前使用浅色主题'}
+                      {themeMode === 'dark' && '当前使用深色主题'}
+                      {themeMode === 'auto' && '自动模式将根据您的系统设置切换主题'}
+                    </p>
                   </div>
                 </div>
               </CardContent>

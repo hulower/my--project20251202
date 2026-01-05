@@ -10,6 +10,7 @@ const musicRoutes = require('./routes/musicRoutes');
 const authRoutes = require('./routes/authRoutes');
 const commentRoutes = require('./routes/commentRoutes');
 const likeRoutes = require('./routes/likeRoutes');
+const tagRoutes = require('./routes/tagRoutes');
 
 function createApp() {
   const app = express();
@@ -51,6 +52,9 @@ function createApp() {
 
   // 点赞相关接口
   app.use('/api', likeRoutes);
+
+  // 标签相关接口
+  app.use('/api/tags', tagRoutes);
 
   // 統一錯誤處理
   // eslint-disable-next-line no-unused-vars

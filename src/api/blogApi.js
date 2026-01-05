@@ -83,3 +83,24 @@ export function incrementViewCount(id) {
   return post(`/api/posts/${id}/view`);
 }
 
+/**
+ * 获取归档数据
+ * @returns {Promise} - 归档数据（按年月分组）
+ */
+export function fetchArchives() {
+  return get('/api/posts/archives');
+}
+
+/**
+ * 搜索文章
+ * @param {string} keyword - 搜索关键词
+ * @param {number} limit - 返回结果数量限制
+ * @returns {Promise} - 搜索结果
+ */
+export function searchPosts(keyword, limit = 10) {
+  const params = new URLSearchParams();
+  params.append('q', keyword);
+  params.append('limit', limit);
+  return get(`/api/posts/search?${params.toString()}`);
+}
+

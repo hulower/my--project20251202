@@ -1,22 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '../../../components/ui/avatar';
-import { Badge } from '../../../components/ui/badge';
 import { Separator } from '../../../components/ui/separator';
-import { Button } from '../../../components/ui/button';
-import { Home, Folder, Archive, Sparkles, Link2, User, Rss, Camera, Loader2, Github, Mail, ChevronDown, ChevronRight } from 'lucide-react';
-import { useToast } from '../../../hooks/use-toast';
+import { Loader2, Github, ChevronDown, ChevronRight } from 'lucide-react';
 import * as userApi from '../../../api/userApi';
 import { API_BASE } from '../../../api/httpClient';
-import { useAuth } from '../../../contexts/AuthContext';
 
 function Sidebar({ stats = { posts: 0, categories: 0, tags: 0 } }) {
-  const { toast } = useToast();
-  const location = useLocation();
-  const { user: currentUser, isAuthenticated } = useAuth();
   const [avatarUrl, setAvatarUrl] = useState(null);
-  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('我的博客');
   const [userBio, setUserBio] = useState('趁年轻，做自己想做的！');
@@ -36,96 +27,41 @@ function Sidebar({ stats = { posts: 0, categories: 0, tags: 0 } }) {
     }));
   };
 
-  // 组件加载时从后端获取用户信息
+  // 组件加载时获取博主信息（个人博客始终显示博主信息）
   useEffect(() => {
-    fetchUserInfo();
-  }, [currentUser?.id]);
+    fetchBlogOwnerInfo();
+  }, []); // 空依赖数组，只在组件挂载时获取一次
 
-  // 从后端获取用户信息
-  const fetchUserInfo = async () => {
+  // 获取博主信息（个人博客的核心：始终显示博主信息，与访问者登录状态无关）
+  const fetchBlogOwnerInfo = async () => {
     try {
       setLoading(true);
-      // 如果已登录，显示当前登录用户；否则显示默认用户（ID=1）
-      const userId = isAuthenticated && currentUser?.id ? currentUser.id : 1;
-      const data = await userApi.fetchUserById(userId); // 调用 API 层
+      
+      // 个人博客始终显示博主（ID=1）的信息
+      // 不管谁访问（游客、注册用户、博主本人），侧边栏都显示博主的个人信息
+      const BLOG_OWNER_ID = 1; // 博主的用户 ID
+      const data = await userApi.fetchUserById(BLOG_OWNER_ID);
       
       // 如果有头像 URL，设置完整路径
       if (data.avatarUrl) {
         setAvatarUrl(`${API_BASE}${data.avatarUrl}`);
+      } else {
+        setAvatarUrl(null);
       }
       
       // 更新用户名和简介
       if (data.username) setUserName(data.username);
       if (data.bio) setUserBio(data.bio);
     } catch (error) {
-      console.error('获取用户信息失败:', error);
+      console.error('获取博主信息失败:', error);
+      // 发生错误时，显示默认信息
+      setAvatarUrl(null);
+      setUserName('我的博客');
+      setUserBio('趁年轻，做自己想做的！');
     } finally {
       setLoading(false);
     }
   };
-
-  // 处理头像上传
-  const handleAvatarChange = async (event) => {
-    const file = event.target.files[0];
-    
-    if (!file) return;
-    
-    // 文件类型检查
-    if (!file.type.startsWith('image/')) {
-      toast({
-        variant: "destructive",
-        title: "✗ 上传失败",
-        description: "请选择图片文件！",
-      });
-      return;
-    }
-    
-    // 文件大小检查（5MB）
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        variant: "destructive",
-        title: "✗ 上传失败",
-        description: "图片大小不能超过 5MB！",
-      });
-      return;
-    }
-
-    try {
-      setUploading(true);
-      
-      // 调用 API 层上传头像
-      const data = await userApi.uploadAvatar(file);
-      
-      // data 现在已经是解包后的 data 字段：{ url, user }
-      if (data && data.url) {
-        setAvatarUrl(`${API_BASE}${data.url}`);
-        console.log('✅ 头像上传成功:', data.url);
-        
-        // 同时更新用户信息
-        if (data.user) {
-          if (data.user.username) setUserName(data.user.username);
-          if (data.user.bio) setUserBio(data.user.bio);
-        }
-      }
-    } catch (error) {
-      console.error('上传失败:', error);
-      toast({
-        variant: "destructive",
-        title: "✗ 上传失败",
-        description: "请检查网络连接或后端服务是否启动！",
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
-  const menuItems = [
-    { path: '/', icon: Home, label: '首页' },
-    { path: '/blog', icon: Folder, label: '分类', count: stats.categories },
-    { path: '/blog', icon: Archive, label: '归档', count: stats.posts },
-    { path: '/particles', icon: Sparkles, label: '粒子系统' },
-    { path: '/blog', icon: Link2, label: '友链', count: 0 },
-    { path: '/blog', icon: User, label: '关于' },
-  ];
 
   return (
     <aside className="space-y-4 backdrop-blur-sm bg-white/10">
@@ -133,46 +69,21 @@ function Sidebar({ stats = { posts: 0, categories: 0, tags: 0 } }) {
       <Card>
         <CardHeader className="text-center pb-3">
           <div className="flex justify-center mb-4">
-            <div className="relative">
-              <Avatar className="w-24 h-24">
-                {/* 如果正在加载，显示加载状态 */}
-                {loading ? (
+            <Avatar className="w-24 h-24">
+              {/* 如果正在加载，显示加载状态 */}
+              {loading ? (
+                <AvatarFallback className="text-4xl bg-gradient-to-br from-cyan-400 to-blue-600">
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                </AvatarFallback>
+              ) : (
+                <>
+                  {avatarUrl && <AvatarImage src={avatarUrl} alt="用户头像" />}
                   <AvatarFallback className="text-4xl bg-gradient-to-br from-cyan-400 to-blue-600">
-                    <Loader2 className="w-8 h-8 animate-spin" />
+                    👨‍💻
                   </AvatarFallback>
-                ) : (
-                  <>
-                    {avatarUrl && <AvatarImage src={avatarUrl} alt="用户头像" />}
-                    <AvatarFallback className="text-4xl bg-gradient-to-br from-cyan-400 to-blue-600">
-                      👨‍💻
-                    </AvatarFallback>
-                  </>
-                )}
-              </Avatar>
-              
-              {/* 上传按钮 */}
-              <label
-                htmlFor="avatar-upload"
-                className={`absolute bottom-0 right-0 p-1.5 bg-primary text-primary-foreground rounded-full cursor-pointer hover:bg-primary/90 transition-colors shadow-lg ${
-                  uploading ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-                title={uploading ? '上传中...' : '更换头像'}
-              >
-                <input
-                  id="avatar-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarChange}
-                  className="hidden"
-                  disabled={uploading}
-                />
-                {uploading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Camera className="w-4 h-4" />
-                )}
-              </label>
-            </div>
+                </>
+              )}
+            </Avatar>
           </div>
           <CardTitle 
             className="text-2xl"
@@ -211,31 +122,48 @@ function Sidebar({ stats = { posts: 0, categories: 0, tags: 0 } }) {
           {/* 社交媒体链接 */}
           <div className="flex justify-center gap-3 mb-4">
             <a
-              href="https://github.com"
+              href="https://github.com/hulower?tab=repositories"
               target="_blank"
               rel="noopener noreferrer"
               className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
               title="GitHub"
             >
-              <Github className="w-5 h-5" />
+              <Github className="w-5 h-5 text-gray-800 dark:text-gray-200" />
             </a>
             <a
-              href="https://weibo.com"
+              href="https://m.weibo.cn/"
               target="_blank"
               rel="noopener noreferrer"
               className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
               title="微博"
             >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#E6162D">
                 <path d="M20.194 14.197c.478-1.256.443-2.335-.098-3.043-.49-.642-1.435-.936-2.642-.74-.191.031-.323.048-.405.058.035-.084.066-.168.093-.251.348-.982.392-1.83.124-2.385-.387-.804-1.493-1.142-2.928-.902-.742.124-1.547.399-2.318.789.022-.11.041-.222.057-.336.138-.995-.021-1.768-.448-2.173-.394-.373-.985-.485-1.67-.315-.684.17-1.386.513-1.975 1.017-.589.504-1.027 1.12-1.23 1.731-.204.611-.152 1.167.147 1.564.299.397.768.594 1.325.594.557 0 1.135-.163 1.643-.501-.144.446-.201.928-.152 1.426.057.577.227 1.133.503 1.641-.577-.17-1.155-.261-1.717-.261-1.842 0-3.459.796-4.556 2.02-1.097 1.224-1.523 2.747-1.194 4.175.329 1.428 1.365 2.596 2.84 3.197 1.475.601 3.288.613 5.044.031 1.756-.582 3.454-1.735 4.603-3.202 1.149-1.467 1.649-3.088 1.387-4.402-.148-.743-.522-1.376-1.048-1.847.744-.197 1.401-.063 1.759.457.316.459.34 1.175.068 2.051-.088.283-.041.59.124.822.165.232.435.367.722.367.344 0 .657-.175.835-.467z"/>
               </svg>
             </a>
             <a
-              href="mailto:your-email@example.com"
+              href="https://space.bilibili.com/1491849569?spm_id_from=333.1387.0.0"
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
-              title="邮箱"
+              title="哔哩哔哩"
             >
-              <Mail className="w-5 h-5" />
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#00A1D6">
+                <path d="M17.813 4.653h.854c1.51.054 2.769.578 3.773 1.574 1.004.995 1.524 2.249 1.56 3.76v7.36c-.036 1.51-.556 2.769-1.56 3.773s-2.262 1.524-3.773 1.56H5.333c-1.51-.036-2.769-.556-3.773-1.56S.036 18.858 0 17.347v-7.36c.036-1.511.556-2.765 1.56-3.76 1.004-.996 2.262-1.52 3.773-1.574h.774l-1.174-1.12a1.234 1.234 0 0 1-.373-.906c0-.356.124-.658.373-.907l.027-.027c.267-.249.573-.373.92-.373.347 0 .653.124.92.373L9.653 4.44c.071.071.134.142.187.213h4.267a.836.836 0 0 1 .16-.213l2.853-2.747c.267-.249.573-.373.92-.373.347 0 .662.151.929.4.267.249.391.551.391.907 0 .355-.124.657-.373.906zM5.333 7.24c-.746.018-1.373.276-1.88.773-.506.498-.769 1.13-.786 1.894v7.52c.017.764.28 1.395.786 1.893.507.498 1.134.756 1.88.773h13.334c.746-.017 1.373-.275 1.88-.773.506-.498.769-1.129.786-1.893v-7.52c-.017-.765-.28-1.396-.786-1.894-.507-.497-1.134-.755-1.88-.773zM8 11.107c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c0-.373.129-.689.386-.947.258-.257.574-.386.947-.386zm8 0c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c.017-.391.15-.711.4-.96.249-.249.56-.373.933-.373Z"/>
+              </svg>
+            </a>
+            <a
+              href="https://music.163.com/#/user/home?id=382468132"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
+              title="网易云音乐"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 512 512" fill="#C20C0C">
+                <path d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm0 472c-123.7 0-224-100.3-224-224S132.3 32 256 32s224 100.3 224 224-100.3 224-224 224zm-96.5-288c7.5 13.5 22.5 45 30 60 31.5 63 27 81-4.5 85.5-48 6-49.5-57-36-90 6-15 10.5-37.5 10.5-55.5zm144 0c-7.5 13.5-22.5 45-30 60-31.5 63-27 81 4.5 85.5 48 6 49.5-57 36-90-6-15-10.5-37.5-10.5-55.5z"/>
+                <circle cx="256" cy="256" r="48" fill="#C20C0C"/>
+                <path d="M341 133.5c-22.5-7.5-49.5 3-67.5 18-6 4.5-13.5 3-16.5-3-4.5-6-3-13.5 3-16.5 22.5-19.5 58.5-33 90-22.5 7.5 3 10.5 12 7.5 18-3 7.5-12 10.5-16.5 6z"/>
+              </svg>
             </a>
           </div>
 
@@ -265,25 +193,25 @@ function Sidebar({ stats = { posts: 0, categories: 0, tags: 0 } }) {
                   className="py-1"
                   style={{ fontWeight: '400', letterSpacing: '0.01em' }}
                 >
-                  • 进击的巨人
+                  • 四月是你的谎言
                 </div>
                 <div 
                   className="py-1"
                   style={{ fontWeight: '400', letterSpacing: '0.01em' }}
                 >
-                  • 命运石之门
+                  • 海贼王
                 </div>
                 <div 
                   className="py-1"
                   style={{ fontWeight: '400', letterSpacing: '0.01em' }}
                 >
-                  • 钢之炼金术师
+                  • 双城之战
                 </div>
                 <div 
                   className="py-1"
                   style={{ fontWeight: '400', letterSpacing: '0.01em' }}
                 >
-                  • 紫罗兰永恒花园
+                  • 龙与虎
                 </div>
               </div>
             )}
@@ -313,25 +241,25 @@ function Sidebar({ stats = { posts: 0, categories: 0, tags: 0 } }) {
                   className="py-1"
                   style={{ fontWeight: '400', letterSpacing: '0.01em' }}
                 >
-                  • 东京，日本
+                  • 威海
                 </div>
                 <div 
                   className="py-1"
                   style={{ fontWeight: '400', letterSpacing: '0.01em' }}
                 >
-                  • 上海，中国
+                  • 深圳
                 </div>
                 <div 
                   className="py-1"
                   style={{ fontWeight: '400', letterSpacing: '0.01em' }}
                 >
-                  • 巴黎，法国
+                  • 洛阳
                 </div>
                 <div 
                   className="py-1"
                   style={{ fontWeight: '400', letterSpacing: '0.01em' }}
                 >
-                  • 纽约，美国
+                  • 苏州
                 </div>
               </div>
             )}
@@ -361,25 +289,25 @@ function Sidebar({ stats = { posts: 0, categories: 0, tags: 0 } }) {
                   className="py-1"
                   style={{ fontWeight: '400', letterSpacing: '0.01em' }}
                 >
-                  • 塞尔达传说：旷野之息
+                  • 英雄联盟
                 </div>
                 <div 
                   className="py-1"
                   style={{ fontWeight: '400', letterSpacing: '0.01em' }}
                 >
-                  • 最后生还者
+                  • 刺客信条
                 </div>
                 <div 
                   className="py-1"
                   style={{ fontWeight: '400', letterSpacing: '0.01em' }}
                 >
-                  • 巫师 3：狂猎
+                  • 侠盗猎车手5
                 </div>
                 <div 
                   className="py-1"
                   style={{ fontWeight: '400', letterSpacing: '0.01em' }}
                 >
-                  • 艾尔登法环
+                  • 瓦罗兰特
                 </div>
               </div>
             )}
@@ -389,58 +317,12 @@ function Sidebar({ stats = { posts: 0, categories: 0, tags: 0 } }) {
 
         </CardContent>
       </Card>
-
-      {/* 导航菜单 */}
-      <Card>
-        <CardHeader>
-          <CardTitle 
-            className="text-lg"
-            style={{ 
-              fontWeight: '600',
-              letterSpacing: '0.01em'
-            }}
-          >
-            博客导航
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <nav className="flex flex-col">
-            {menuItems.map((item, index) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              
-              return (
-                <Link
-                  key={index}
-                  to={item.path}
-                  className={`flex items-center justify-between px-6 py-3 hover:bg-accent transition-colors ${
-                    isActive ? 'bg-accent text-accent-foreground font-medium' : ''
-                  }`}
-                  style={{
-                    fontWeight: isActive ? '500' : '400',
-                    letterSpacing: '0.01em'
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-5 h-5" />
-                    <span>{item.label}</span>
-                  </div>
-                  {item.count !== undefined && (
-                    <Badge variant="secondary" className="ml-auto">
-                      {item.count}
-                    </Badge>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
-        </CardContent>
-      </Card>
     </aside>
   );
 }
 
 export default Sidebar;
+
 
 
 

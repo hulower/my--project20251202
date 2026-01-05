@@ -1,10 +1,13 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, BookOpen, Sparkles, MessageCircle, BookMarked, Music } from 'lucide-react';
+import { Home, BookOpen, MessageCircle, BookMarked, Archive, Music, Tag, Layers, Code } from 'lucide-react';
 import './App.css';
 import AppRoutes from './routes/AppRoutes';
 import { Toaster } from './components/ui/toaster';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import UserMenu from './components/UserMenu';
+import SearchBar from './components/SearchBar';
+import DropdownMenu from './components/DropdownMenu';
 
 function AppContent() {
   const location = useLocation();
@@ -16,6 +19,9 @@ function AppContent() {
   
   // 检查用户是否有音乐管理权限（editor 或 admin）
   const canAccessMusicManage = hasRole(['editor', 'admin']);
+  
+  // 检查用户是否有标签管理权限（仅 admin）
+  const canAccessTagManage = hasRole(['admin']);
   
   const navLinkStyle = {
     display: 'flex',
@@ -41,8 +47,8 @@ function AppContent() {
                  top: 0,
                  left: 0,
                  right: 0,
-                 display: 'flex',
-                 justifyContent: 'space-between',
+                 display: 'grid',
+                 gridTemplateColumns: '1fr auto 1fr',
                  alignItems: 'center',
                  padding: '0.75rem 2rem',
                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -52,6 +58,48 @@ function AppContent() {
                  borderBottom: '1px solid rgba(226, 232, 240, 0.8)',
                }}
              >
+               {/* Logo + 搜索框 - 左侧 */}
+               <div
+                 style={{
+                   display: 'flex',
+                   alignItems: 'center',
+                   gap: '1.5rem',
+                   justifyContent: 'flex-start',
+                 }}
+               >
+                 {/* Logo */}
+                 <Link
+                   to="/"
+                   style={{
+                     display: 'flex',
+                     alignItems: 'center',
+                     gap: '0.5rem',
+                     textDecoration: 'none',
+                     fontSize: '20px',
+                     fontWeight: '700',
+                     color: '#d4988b',
+                     letterSpacing: '0.5px',
+                     transition: 'all 0.2s ease',
+                     whiteSpace: 'nowrap',
+                   }}
+                   onMouseEnter={(e) => {
+                     e.currentTarget.style.transform = 'scale(1.05)';
+                     e.currentTarget.style.color = '#c5897c';
+                   }}
+                   onMouseLeave={(e) => {
+                     e.currentTarget.style.transform = 'scale(1)';
+                     e.currentTarget.style.color = '#d4988b';
+                   }}
+                 >
+                   <span>Betsy'Blog</span>
+                 </Link>
+                 
+                 {/* 搜索框 */}
+                 <div style={{ width: '280px' }}>
+                   <SearchBar />
+                 </div>
+               </div>
+
                {/* 导航链接 - 居中 */}
                <div
                  style={{
@@ -59,26 +107,8 @@ function AppContent() {
                    justifyContent: 'center',
                    alignItems: 'center',
                    gap: '0.5rem',
-                   flex: 1,
                  }}
                >
-               <Link 
-                 to="/" 
-                 style={navLinkStyle}
-                 onMouseEnter={(e) => {
-                   e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.08)';
-                   e.currentTarget.style.color = '#0f172a';
-                   e.currentTarget.style.transform = 'translateY(-1px)';
-                 }}
-                 onMouseLeave={(e) => {
-                   e.currentTarget.style.backgroundColor = 'transparent';
-                   e.currentTarget.style.color = '#334155';
-                   e.currentTarget.style.transform = 'translateY(0)';
-                 }}
-               >
-                 <Home size={18} strokeWidth={2.5} />
-                 <span>首页</span>
-               </Link>
               <Link 
                 to="/blog" 
                 style={navLinkStyle}
@@ -94,10 +124,33 @@ function AppContent() {
                 }}
               >
                 <BookOpen size={18} strokeWidth={2.5} />
-                <span>个人博客</span>
+                <span>首页</span>
               </Link>
+              {/* 分类下拉菜单 */}
+              <DropdownMenu
+                label="分类"
+                icon={Layers}
+                navLinkStyle={navLinkStyle}
+                items={[
+                  { 
+                    label: '说说', 
+                    path: '/blog/mood', 
+                    icon: MessageCircle 
+                  },
+                  { 
+                    label: '学习笔记', 
+                    path: '/blog/notes', 
+                    icon: BookMarked 
+                  },
+                  { 
+                    label: '技术博客', 
+                    path: '/blog/tech', 
+                    icon: Code 
+                  },
+                ]}
+              />
               <Link 
-                to="/blog/mood" 
+                to="/blog/archives" 
                 style={navLinkStyle}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.08)';
@@ -110,43 +163,9 @@ function AppContent() {
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                <MessageCircle size={18} strokeWidth={2.5} />
-                <span>说说</span>
+                <Archive size={18} strokeWidth={2.5} />
+                <span>归档</span>
               </Link>
-              <Link 
-                to="/blog/notes" 
-                style={navLinkStyle}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.08)';
-                  e.currentTarget.style.color = '#0f172a';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = '#334155';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-              >
-                <BookMarked size={18} strokeWidth={2.5} />
-                <span>学习笔记</span>
-              </Link>
-             <Link 
-               to="/particles" 
-               style={navLinkStyle}
-               onMouseEnter={(e) => {
-                 e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.08)';
-                 e.currentTarget.style.color = '#0f172a';
-                 e.currentTarget.style.transform = 'translateY(-1px)';
-               }}
-               onMouseLeave={(e) => {
-                 e.currentTarget.style.backgroundColor = 'transparent';
-                 e.currentTarget.style.color = '#334155';
-                 e.currentTarget.style.transform = 'translateY(0)';
-               }}
-             >
-               <Sparkles size={18} strokeWidth={2.5} />
-               <span>粒子</span>
-             </Link>
              {/* 音乐管理 - 仅对 editor 和 admin 可见 */}
              {canAccessMusicManage && (
                <Link 
@@ -167,6 +186,27 @@ function AppContent() {
                  <span>音乐管理</span>
                </Link>
              )}
+             
+             {/* 标签管理 - 仅对 admin 可见 */}
+             {canAccessTagManage && (
+               <Link 
+                 to="/tag-manage" 
+                 style={navLinkStyle}
+                 onMouseEnter={(e) => {
+                   e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.08)';
+                   e.currentTarget.style.color = '#0f172a';
+                   e.currentTarget.style.transform = 'translateY(-1px)';
+                 }}
+                 onMouseLeave={(e) => {
+                   e.currentTarget.style.backgroundColor = 'transparent';
+                   e.currentTarget.style.color = '#334155';
+                   e.currentTarget.style.transform = 'translateY(0)';
+                 }}
+               >
+                 <Tag size={18} strokeWidth={2.5} />
+                 <span>标签管理</span>
+               </Link>
+             )}
                </div>
                
                {/* 用户菜单 - 右侧 */}
@@ -174,6 +214,7 @@ function AppContent() {
                  style={{
                    display: 'flex',
                    alignItems: 'center',
+                   justifyContent: 'flex-end',
                  }}
                >
                  <UserMenu />
@@ -188,9 +229,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

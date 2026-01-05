@@ -26,6 +26,8 @@
 
 const express = require('express');
 const postController = require('../controllers/postController');
+const tagController = require('../controllers/tagController');
+const { authenticate, authorize } = require('../middleware/authMiddleware');
 
 // 创建路由实例
 // Router 是 Express 提供的路由管理器
@@ -48,6 +50,51 @@ const router = express.Router();
  * 所以这里的 '/' 实际上是 '/api/posts'
  */
 router.get('/', postController.listPosts);
+
+/**
+ * 搜索文章
+ * @route GET /api/posts/search?q=关键词&limit=10
+ * @description 搜索文章（按标题和内容）
+ * @param {string} q - 搜索关键词（查询参数）
+ * @param {number} limit - 返回结果数量限制（可选，默认10）
+ * @access Public
+ * 
+ * 完整 URL：http://localhost:5001/api/posts/search?q=元旦&limit=5
+ * 
+ * 返回格式：
+ * [
+ *   { id: 1, title: "元旦假期总结", slug: "...", category: "...", excerpt: "...", createdAt: "..." },
+ *   ...
+ * ]
+ * 
+ * ⚠️ 注意：此路由必须放在 /:id 路由之前
+ * 否则 "search" 会被当作 ID 处理
+ */
+router.get('/search', postController.searchPosts);
+
+/**
+ * 获取归档数据
+ * @route GET /api/posts/archives
+ * @description 获取按年月分组的文章归档数据
+ * @access Public
+ * 
+ * 完整 URL：http://localhost:5001/api/posts/archives
+ * 
+ * 返回格式：
+ * [
+ *   {
+ *     year: 2024,
+ *     months: [
+ *       { month: 1, count: 5, posts: [{id, title, slug, createdAt}, ...] },
+ *       { month: 2, count: 3, posts: [{id, title, slug, createdAt}, ...] }
+ *     ]
+ *   }
+ * ]
+ * 
+ * ⚠️ 注意：此路由必须放在 /:id 路由之前
+ * 否则 "archives" 会被当作 ID 处理
+ */
+router.get('/archives', postController.getArchives);
 
 /**
  * 根据 slug 查询单篇文章
@@ -170,6 +217,49 @@ router.delete('/:id/cover', postController.removeCover);
  * 浏览量会自动 +1
  */
 router.post('/:id/view', postController.incrementView);
+
+// ========================================
+// 文章标签相关路由
+// ========================================
+
+/**
+ * 获取文章的所有标签
+ * @route GET /api/posts/:postId/tags
+ * @description 获取指定文章的所有标签
+ * @param {number} postId - 文章 ID
+ * @access Public
+ */
+router.get('/:postId/tags', tagController.getPostTags);
+
+/**
+ * 批量设置文章的标签
+ * @route PUT /api/posts/:postId/tags
+ * @description 批量设置文章的标签（会覆盖原有标签）
+ * @param {number} postId - 文章 ID
+ * @body {Array} tagIds - 标签 ID 数组
+ * @access Protected（需要 editor/admin 权限）
+ */
+router.put('/:postId/tags', authenticate, authorize(['editor', 'admin']), tagController.setPostTags);
+
+/**
+ * 为文章添加标签
+ * @route POST /api/posts/:postId/tags/:tagId
+ * @description 为文章添加单个标签
+ * @param {number} postId - 文章 ID
+ * @param {number} tagId - 标签 ID
+ * @access Protected（需要 editor/admin 权限）
+ */
+router.post('/:postId/tags/:tagId', authenticate, authorize(['editor', 'admin']), tagController.addTagToPost);
+
+/**
+ * 从文章移除标签
+ * @route DELETE /api/posts/:postId/tags/:tagId
+ * @description 从文章移除单个标签
+ * @param {number} postId - 文章 ID
+ * @param {number} tagId - 标签 ID
+ * @access Protected（需要 editor/admin 权限）
+ */
+router.delete('/:postId/tags/:tagId', authenticate, authorize(['editor', 'admin']), tagController.removeTagFromPost);
 
 // ========================================
 // 导出路由

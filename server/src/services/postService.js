@@ -117,7 +117,8 @@ class PostService {
    * 2. 这里没有额外的业务逻辑，但如果将来需要（比如只返回已发布的文章），可以在这里添加
    */
   async getAllPosts() {
-    return await postRepository.listPosts();
+    const posts = await postRepository.listPosts();
+    return await postRepository.loadTagsForPosts(posts);
   }
 
   /**
@@ -158,7 +159,12 @@ class PostService {
     }
     
     // 调用 Repository 获取分页数据
-    return await postRepository.listPostsWithPagination({ page, pageSize, category });
+    const result = await postRepository.listPostsWithPagination({ page, pageSize, category });
+    
+    // 为文章列表加载标签
+    result.list = await postRepository.loadTagsForPosts(result.list);
+    
+    return result;
   }
 
   /**
@@ -173,7 +179,7 @@ class PostService {
    * 3. 这个错误会被 app.js 中的错误处理中间件捕获，返回给前端
    */
   async getPostById(id) {
-    const post = await postRepository.findPostById(id);
+    let post = await postRepository.findPostById(id);
     
     // 文章不存在时的处理
     if (!post) {
@@ -181,6 +187,9 @@ class PostService {
       error.statusCode = 404; // 添加 HTTP 状态码
       throw error; // 抛出错误，会被全局错误处理捕获
     }
+    
+    // 加载标签
+    post = await postRepository.loadTagsForPost(post);
     
     return post;
   }
@@ -197,7 +206,7 @@ class PostService {
    * 3. 返回文章对象
    */
   async getPostBySlug(slug) {
-    const post = await postRepository.findPostBySlug(slug);
+    let post = await postRepository.findPostBySlug(slug);
     
     // 文章不存在时的处理
     if (!post) {
@@ -205,6 +214,9 @@ class PostService {
       error.statusCode = 404;
       throw error;
     }
+    
+    // 加载标签
+    post = await postRepository.loadTagsForPost(post);
     
     return post;
   }
@@ -422,6 +434,51 @@ class PostService {
     }
     
     return updated;
+  }
+  
+  /**
+   * 获取归档数据
+   * @returns {Promise<Array>} 归档数据（按年月分组）
+   * 
+   * 返回格式：
+   * [
+   *   { 
+   *     year: 2024, 
+   *     months: [
+   *       { month: 1, count: 5, posts: [{id, title, slug, createdAt}, ...] },
+   *       { month: 2, count: 3, posts: [{id, title, slug, createdAt}, ...] }
+   *     ] 
+   *   }
+   * ]
+   */
+  async getArchives() {
+    return await postRepository.getArchives();
+  }
+  
+  /**
+   * 搜索文章
+   * @param {string} keyword - 搜索关键词
+   * @param {number} limit - 返回结果数量限制
+   * @returns {Promise<Array>} 搜索结果
+   * 
+   * 业务逻辑：
+   * 1. 验证关键词不为空
+   * 2. 调用 Repository 搜索
+   * 3. 返回结果
+   */
+  async searchPosts(keyword, limit = 10) {
+    // 验证关键词
+    if (!keyword || keyword.trim() === '') {
+      return [];
+    }
+    
+    // 去除前后空格
+    const trimmedKeyword = keyword.trim();
+    
+    // 调用 Repository 搜索
+    const results = await postRepository.searchPosts(trimmedKeyword, limit);
+    
+    return results;
   }
 }
 

@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import * as blogApi from '../../../api/blogApi';
 import * as musicApi from '../../../api/musicApi';
+import * as tagApi from '../../../api/tagApi';
 import Sidebar from '../components/Sidebar';
 import PostCard from '../components/PostCard';
 import MoodCard from '../components/MoodCard';
 import NoteCard from '../components/NoteCard';
 import HeroSection from '../components/HeroSection';
+import TagSelector from '../components/TagSelector';
+import TagCloud from '../components/TagCloud';
 import PaginationWrapper from '../../../components/ui/pagination-wrapper';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -26,7 +29,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../../components/ui/select';
-import { PenSquare, Loader2, AlertCircle, FileText, Image as ImageIcon, X } from 'lucide-react';
+import { PenSquare, Loader2, AlertCircle, FileText, Image as ImageIcon, X, Tag as TagIcon } from 'lucide-react';
+import { Badge } from '../../../components/ui/badge';
 import { useToast } from '../../../hooks/use-toast';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import RichTextEditor from '../../../components/RichTextEditor/RichTextEditor';
@@ -34,12 +38,17 @@ import { RoleGuard } from '../../../components/ProtectedRoute';
 
 function BlogPage() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const tagSlug = searchParams.get('tag'); // 从 URL 获取 tag 参数
+  
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
+  const [currentTagName, setCurrentTagName] = useState(''); // 当前筛选的标签名称
   
   // 删除确认对话框
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -48,7 +57,8 @@ function BlogPage() {
     title: '', 
     content: '', 
     category: '技术博客',
-    musicId: null
+    musicId: null,
+    tagIds: []
   });
   const [musicList, setMusicList] = useState([]); // 音乐列表
   
@@ -63,6 +73,9 @@ function BlogPage() {
   const [totalPosts, setTotalPosts] = useState(0);
   const pageSize = 5; // 每页显示 5 条
   
+  // 标签云刷新触发器
+  const [tagCloudRefreshKey, setTagCloudRefreshKey] = useState(0);
+  
   // 内容区域的引用，用于滚动
   const contentRef = useRef(null);
 
@@ -71,6 +84,7 @@ function BlogPage() {
     const path = location.pathname;
     if (path === '/blog/mood') return '说说';
     if (path === '/blog/notes') return '学习笔记';
+    if (path === '/blog/tech') return '技术博客';
     if (path === '/blog') return null; // 显示全部
     return null;
   }, [location.pathname]);
@@ -113,15 +127,15 @@ function BlogPage() {
     tags: Math.floor(totalPosts * 2.5),
   };
 
-  // 主加载逻辑：当分类、页码或路由改变时，重新加载文章
+  // 主加载逻辑：当分类、页码、标签或路由改变时，重新加载文章
   useEffect(() => {
-    loadPosts(currentPage, currentCategory);
-  }, [currentPage, currentCategory, location.pathname]); // 添加 location.pathname 监听路由变化
+    loadPosts(currentPage, tagSlug ? null : currentCategory, tagSlug);
+  }, [currentPage, currentCategory, tagSlug, location.pathname]); // 添加 tagSlug 监听
 
-  // 当分类改变时，重置到第一页
+  // 当分类或标签改变时，重置到第一页
   useEffect(() => {
     setCurrentPage(1);
-  }, [currentCategory]);
+  }, [currentCategory, tagSlug]);
 
   // 加载音乐列表
   useEffect(() => {
@@ -136,39 +150,62 @@ function BlogPage() {
     loadMusicList();
   }, []);
 
-  const loadPosts = async (page = 1, category = null) => {
+  const loadPosts = async (page = 1, category = null, tag = null) => {
     try {
       setLoading(true);
       
-      // 调用 API，传递分页和分类参数
-      const params = {
-        page,
-        pageSize,
-        category: category || undefined, // 如果没有分类，不传这个参数
-      };
-      
-      const data = await blogApi.fetchPosts(params);
-      
-      // 假设后端返回的格式是 { list, pagination: { total, page, pageSize, totalPages } }
-      if (data.list) {
-        setPosts(data.list);
-        setTotalPosts(data.pagination?.total || 0);
-        setTotalPages(data.pagination?.totalPages || 1);
-        setCurrentPage(data.pagination?.page || 1);
+      // 如果有标签筛选，使用标签 API
+      if (tag) {
+        const data = await tagApi.getPostsByTag(tag, page, pageSize);
+        
+        if (data.list) {
+          setPosts(data.list);
+          setTotalPosts(data.pagination?.total || 0);
+          setTotalPages(data.pagination?.totalPages || 1);
+          setCurrentPage(data.pagination?.page || 1);
+          
+          // 获取标签名称
+          if (data.list.length > 0 && data.list[0].tags) {
+            const currentTag = data.list[0].tags.find(t => t.slug === tag);
+            setCurrentTagName(currentTag ? currentTag.name : '');
+          }
+        } else {
+          setPosts([]);
+          setTotalPosts(0);
+          setTotalPages(1);
+        }
       } else {
-        // 如果后端还没改，临时处理：前端分页
-        const allPosts = Array.isArray(data) ? data : [];
-        const filtered = category 
-          ? allPosts.filter(post => post.category === category)
-          : allPosts;
+        // 正常加载文章（按分类）
+        const params = {
+          page,
+          pageSize,
+          category: category || undefined,
+        };
         
-        const startIndex = (page - 1) * pageSize;
-        const endIndex = startIndex + pageSize;
-        const paginatedPosts = filtered.slice(startIndex, endIndex);
+        const data = await blogApi.fetchPosts(params);
         
-        setPosts(paginatedPosts);
-        setTotalPosts(filtered.length);
-        setTotalPages(Math.ceil(filtered.length / pageSize));
+        if (data.list) {
+          setPosts(data.list);
+          setTotalPosts(data.pagination?.total || 0);
+          setTotalPages(data.pagination?.totalPages || 1);
+          setCurrentPage(data.pagination?.page || 1);
+        } else {
+          // 如果后端还没改，临时处理：前端分页
+          const allPosts = Array.isArray(data) ? data : [];
+          const filtered = category 
+            ? allPosts.filter(post => post.category === category)
+            : allPosts;
+          
+          const startIndex = (page - 1) * pageSize;
+          const endIndex = startIndex + pageSize;
+          const paginatedPosts = filtered.slice(startIndex, endIndex);
+          
+          setPosts(paginatedPosts);
+          setTotalPosts(filtered.length);
+          setTotalPages(Math.ceil(filtered.length / pageSize));
+        }
+        
+        setCurrentTagName(''); // 清空标签名称
       }
       
       setError(null);
@@ -226,6 +263,23 @@ function BlogPage() {
         });
       }
       
+      // 保存标签（包括清空标签的情况）
+      if (savedPost?.id && formData.tagIds !== undefined) {
+        try {
+          await tagApi.setPostTags(savedPost.id, formData.tagIds);
+          // 标签保存成功，触发标签云刷新
+          setTagCloudRefreshKey(prev => prev + 1);
+        } catch (tagError) {
+          console.error('保存标签失败:', tagError);
+          // 标签保存失败不影响文章保存，只显示警告
+          toast({
+            variant: "warning",
+            title: "⚠️ 标签保存失败",
+            description: "文章已保存，但标签设置失败。",
+          });
+        }
+      }
+      
       // 重新加载当前页
       await loadPosts(currentPage, currentCategory);
       resetForm();
@@ -255,7 +309,8 @@ function BlogPage() {
       title: post.title, 
       content: post.content,
       category: post.category || '技术博客',
-      musicId: post.musicId || null
+      musicId: post.musicId || null,
+      tagIds: post.tags ? post.tags.map(tag => tag.id) : []
     });
     // 设置现有的封面图片（用于预览）
     if (post.coverImage) {
@@ -283,6 +338,8 @@ function BlogPage() {
       });
       // 重新加载当前页
       await loadPosts(currentPage, currentCategory);
+      // 触发标签云刷新
+      setTagCloudRefreshKey(prev => prev + 1);
     } catch (err) {
       console.error('删除失败:', err);
       toast({
@@ -338,7 +395,8 @@ function BlogPage() {
       title: '', 
       content: '', 
       category: currentCategory || '技术博客',
-      musicId: null
+      musicId: null,
+      tagIds: []
     });
     setCoverImageFile(null);
     setCoverImagePreview(null);
@@ -393,6 +451,25 @@ function BlogPage() {
             </Button>
           </RoleGuard>
         </div>
+
+        {/* 标签筛选提示 */}
+        {tagSlug && (
+          <div className="mb-4 flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <TagIcon className="w-4 h-4 text-blue-600" />
+            <span className="text-sm text-blue-700 dark:text-blue-300">
+              正在显示标签为 <strong>#{currentTagName || tagSlug}</strong> 的文章
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/blog')}
+              className="ml-auto text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+            >
+              <X className="w-4 h-4 mr-1" />
+              清除筛选
+            </Button>
+          </div>
+        )}
 
         {/* 文章列表 */}
         {loading ? (
@@ -471,8 +548,10 @@ function BlogPage() {
         )}
         </main>
 
-        {/* 右侧空白区域 - 用于平衡布局（1列，20%） */}
-        <div className="hidden lg:block lg:col-span-1 backdrop-blur-sm bg-white/5"></div>
+        {/* 右侧边栏 - 标签云（1列，20%） */}
+        <div className="hidden lg:block lg:col-span-1 p-8">
+          <TagCloud refreshKey={tagCloudRefreshKey} />
+        </div>
       </div>
 
       {/* 编辑/新建文章对话框 */}
@@ -600,6 +679,18 @@ function BlogPage() {
                 value={formData.content}
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                 placeholder="开始你的创作...点击工具栏格式化文本"
+              />
+            </div>
+
+            {/* 标签选择器 */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-2">
+                🏷️ 文章标签
+                <span className="text-xs text-gray-500 font-normal">（可选）</span>
+              </label>
+              <TagSelector
+                selectedTagIds={formData.tagIds}
+                onChange={(tagIds) => setFormData({ ...formData, tagIds })}
               />
             </div>
           </form>

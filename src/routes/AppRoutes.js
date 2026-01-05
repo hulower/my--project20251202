@@ -1,8 +1,8 @@
 import { Routes, Route } from 'react-router-dom';
-import HomePage from '../features/home/pages/HomePage';
 import BlogPage from '../features/blog/pages/BlogPage';
 import PostDetailPage from '../features/blog/pages/PostDetailPage';
-import ParticlePage from '../features/particles/pages/ParticlePage';
+import ArchivePage from '../features/blog/pages/ArchivePage';
+import TagManagePage from '../features/blog/pages/TagManagePage';
 import MusicManagePage from '../features/music/pages/MusicManagePage';
 import LoginPage from '../features/auth/pages/LoginPage';
 import RegisterPage from '../features/auth/pages/RegisterPage';
@@ -14,12 +14,13 @@ function AppRoutes() {
   return (
     <Routes>
       {/* 公开路由 - 任何人都可以访问 */}
-      <Route path="/" element={<HomePage />} />
+      <Route path="/" element={<BlogPage />} />
       <Route path="/blog/post/:slug" element={<PostDetailPage />} />
       <Route path="/blog" element={<BlogPage />} />
       <Route path="/blog/mood" element={<BlogPage />} />
       <Route path="/blog/notes" element={<BlogPage />} />
-      <Route path="/particles" element={<ParticlePage />} />
+      <Route path="/blog/tech" element={<BlogPage />} />
+      <Route path="/blog/archives" element={<ArchivePage />} />
       
       {/* 访客专用路由 - 只有未登录用户可以访问 */}
       <Route 
@@ -63,6 +64,16 @@ function AppRoutes() {
         element={
           <ProtectedRoute roles={['editor', 'admin']}>
             <MusicManagePage />
+          </ProtectedRoute>
+        } 
+      />
+      
+      {/* 标签管理 - 仅管理员 */}
+      <Route 
+        path="/tag-manage" 
+        element={
+          <ProtectedRoute roles={['admin']}>
+            <TagManagePage />
           </ProtectedRoute>
         } 
       />

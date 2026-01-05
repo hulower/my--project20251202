@@ -23,6 +23,7 @@
 
 // 引入数据库连接池
 const db = require('../config/db');
+const tagRepository = require('./tagRepository');
 
 // ========================================
 // 查询操作（Read）
@@ -325,6 +326,189 @@ async function incrementViewCount(id) {
 // 导出所有函数
 // ========================================
 
+// ========================================
+// 辅助函数：为文章加载标签
+// ========================================
+
+/**
+ * 为单个文章加载标签
+ * @param {Object} post - 文章对象
+ * @returns {Promise<Object>} 带标签的文章对象
+ */
+async function loadTagsForPost(post) {
+  if (!post) return post;
+  try {
+    const tags = await tagRepository.findByPostId(post.id);
+    return { ...post, tags };
+  } catch (error) {
+    console.error(`加载文章 ${post.id} 的标签失败:`, error);
+    return { ...post, tags: [] };
+  }
+}
+
+/**
+ * 为多个文章加载标签
+ * @param {Array} posts - 文章数组
+ * @returns {Promise<Array>} 带标签的文章数组
+ */
+async function loadTagsForPosts(posts) {
+  if (!posts || posts.length === 0) return posts;
+  
+  // 并行加载所有文章的标签
+  const postsWithTags = await Promise.all(
+    posts.map(post => loadTagsForPost(post))
+  );
+  
+  return postsWithTags;
+}
+
+/**
+ * 获取归档数据（按年月分组）
+ * @returns {Promise<Array>} 归档数据
+ * 
+ * 返回格式：
+ * [
+ *   { 
+ *     year: 2024, 
+ *     months: [
+ *       { month: 1, count: 5, posts: [{id, title, slug, createdAt}, ...] },
+ *       { month: 2, count: 3, posts: [{id, title, slug, createdAt}, ...] }
+ *     ] 
+ *   },
+ *   { year: 2023, months: [...] }
+ * ]
+ */
+async function getArchives() {
+  // 查询所有文章的基本信息（按时间倒序）
+  const [posts] = await db.query(`
+    SELECT 
+      id, 
+      title, 
+      slug,
+      category,
+      YEAR(created_at) as year,
+      MONTH(created_at) as month,
+      created_at as createdAt
+    FROM posts 
+    ORDER BY created_at DESC
+  `);
+  
+  // 按年月分组
+  const archiveMap = {};
+  
+  posts.forEach(post => {
+    const { year, month, ...postInfo } = post;
+    
+    if (!archiveMap[year]) {
+      archiveMap[year] = {};
+    }
+    
+    if (!archiveMap[year][month]) {
+      archiveMap[year][month] = [];
+    }
+    
+    archiveMap[year][month].push(postInfo);
+  });
+  
+  // 转换为数组格式
+  const archives = Object.keys(archiveMap)
+    .sort((a, b) => b - a) // 年份倒序
+    .map(year => ({
+      year: parseInt(year),
+      months: Object.keys(archiveMap[year])
+        .sort((a, b) => b - a) // 月份倒序
+        .map(month => ({
+          month: parseInt(month),
+          count: archiveMap[year][month].length,
+          posts: archiveMap[year][month]
+        }))
+    }));
+  
+  return archives;
+}
+
+/**
+ * 去除HTML标签，提取纯文本
+ * @param {string} html - HTML字符串
+ * @returns {string} 纯文本
+ */
+function stripHtmlTags(html) {
+  if (!html) return '';
+  
+  // 去除HTML标签
+  let text = html.replace(/<[^>]*>/g, '');
+  
+  // 解码HTML实体
+  text = text
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+  
+  // 去除多余空白
+  text = text.replace(/\s+/g, ' ').trim();
+  
+  return text;
+}
+
+/**
+ * 搜索文章
+ * @param {string} keyword - 搜索关键词
+ * @param {number} limit - 返回结果数量限制（默认10）
+ * @returns {Promise<Array>} 搜索结果
+ * 
+ * 搜索范围：标题、内容
+ * 返回格式：[{id, title, slug, category, excerpt, createdAt}, ...]
+ */
+async function searchPosts(keyword, limit = 10) {
+  if (!keyword || keyword.trim() === '') {
+    return [];
+  }
+  
+  // 使用 LIKE 进行模糊搜索
+  const searchPattern = `%${keyword}%`;
+  
+  const [rows] = await db.query(
+    `SELECT 
+      id, 
+      title, 
+      slug, 
+      category,
+      content,
+      created_at as createdAt
+    FROM posts 
+    WHERE title LIKE ? OR content LIKE ?
+    ORDER BY created_at DESC
+    LIMIT ?`,
+    [searchPattern, searchPattern, limit]
+  );
+  
+  // 处理每个结果：去除HTML标签并截取摘要
+  const results = rows.map(row => {
+    const plainText = stripHtmlTags(row.content);
+    const excerpt = plainText.length > 150 
+      ? plainText.substring(0, 150) + '...' 
+      : plainText;
+    
+    return {
+      id: row.id,
+      title: row.title,
+      slug: row.slug,
+      category: row.category,
+      excerpt: excerpt,
+      createdAt: row.createdAt
+    };
+  });
+  
+  return results;
+}
+
+// ========================================
+// 导出所有方法
+// ========================================
+
 /**
  * 导出的函数会被 Service 层调用
  * Service 不需要知道这些函数内部是怎么查询数据库的
@@ -341,5 +525,9 @@ module.exports = {
   deletePost,                 // 删除
   updatePostCover,            // 更新封面
   incrementViewCount,         // 增加浏览量
+  loadTagsForPost,            // 为单个文章加载标签
+  loadTagsForPosts,           // 为多个文章加载标签
+  getArchives,                // 获取归档数据
+  searchPosts,                // 搜索文章
 };
 
