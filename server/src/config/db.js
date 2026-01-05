@@ -24,17 +24,17 @@ const mysql = require('mysql2'); // 引入 mysql2 库
 // ========================================
 
 const pool = mysql.createPool({
-  // 数据库服务器地址
-  host: '127.0.0.1', // 本地数据库，127.0.0.1 就是 localhost
+  // 数据库服务器地址（从环境变量读取，默认 localhost）
+  host: process.env.DB_HOST || '127.0.0.1',
   
-  // 数据库用户名
-  user: 'root', // MySQL 默认管理员账户
+  // 数据库用户名（从环境变量读取，默认 root）
+  user: process.env.DB_USER || 'root',
   
-  // 数据库密码
-  password: '13698810685qwe', // 你安装 MySQL 时设置的密码
+  // 数据库密码（⚠️ 必须从环境变量读取，不要硬编码）
+  password: process.env.DB_PASSWORD,
   
-  // 要连接的数据库名
-  database: 'my_node_app', // 必须预先在 MySQL 中创建这个数据库
+  // 要连接的数据库名（从环境变量读取，默认 my_node_app）
+  database: process.env.DB_NAME || 'my_node_app',
   
   // 连接池配置
   waitForConnections: true, // 当连接池满时，等待而不是立即报错
