@@ -7,6 +7,23 @@
 
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+
+// ========================================
+// 确保上传目录存在
+// ========================================
+const musicUploadDir = path.join(__dirname, '../../uploads/music/');
+const coverUploadDir = path.join(__dirname, '../../uploads/music/covers/');
+
+if (!fs.existsSync(musicUploadDir)) {
+  fs.mkdirSync(musicUploadDir, { recursive: true });
+  console.log('✅ 创建音乐上传目录:', musicUploadDir);
+}
+
+if (!fs.existsSync(coverUploadDir)) {
+  fs.mkdirSync(coverUploadDir, { recursive: true });
+  console.log('✅ 创建封面上传目录:', coverUploadDir);
+}
 
 // ========================================
 // 音乐文件上传配置
@@ -14,8 +31,7 @@ const path = require('path');
 
 const musicStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadPath = path.join(__dirname, '../../uploads/music/');
-    cb(null, uploadPath);
+    cb(null, musicUploadDir);
   },
   filename: (req, file, cb) => {
     // 生成唯一文件名：music-时间戳-随机数.扩展名
@@ -61,8 +77,7 @@ const uploadMusic = multer({
 
 const coverStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadPath = path.join(__dirname, '../../uploads/music/covers/');
-    cb(null, uploadPath);
+    cb(null, coverUploadDir);
   },
   filename: (req, file, cb) => {
     // 生成唯一文件名：cover-时间戳-随机数.扩展名
