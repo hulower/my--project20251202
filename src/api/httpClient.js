@@ -3,7 +3,7 @@ import { authStorage } from '../utils/auth';
 // 根据环境自动切换 API 地址
 const API_BASE = process.env.REACT_APP_API_BASE_URL || 
   (process.env.NODE_ENV === 'production' 
-    ? 'https://你的后端域名.onrender.com' // 生产环境：部署后替换为实际后端域名
+    ? 'http://82.156.185.63' // 生产环境：你的服务器 IP
     : 'http://localhost:5001'); // 开发环境
 
 // 正在刷新 Token 的 Promise（防止并发刷新）
