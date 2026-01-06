@@ -18,8 +18,14 @@ function createApp() {
   // 全局中間件 - CORS 配置
   const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
-      ? ['https://你的前端域名.vercel.app', 'https://你的自定义域名.com'] // 生产环境：替换为实际前端域名
-      : ['http://localhost:3000'], // 开发环境
+      ? [
+          'http://82.156.185.63',
+          'https://www.betsy.cloud',  // 你的域名（HTTPS）
+          'http://www.betsy.cloud',   // 你的域名（HTTP）
+          'https://betsy.cloud',      // 不带 www 的域名（HTTPS）
+          'http://betsy.cloud'        // 不带 www 的域名（HTTP）
+        ]
+      : ['http://localhost:3000', 'http://localhost:5002', 'http://localhost:5001'], // 开发环境：允许多个端口
     credentials: true,
   };
   app.use(cors(corsOptions));
