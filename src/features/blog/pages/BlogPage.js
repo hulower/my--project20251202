@@ -89,8 +89,8 @@ function BlogPage() {
     return null;
   }, [location.pathname]);
 
-  // 判断是否显示 Hero Section（只在个人博客主页显示）
-  const showHeroSection = location.pathname === '/blog';
+  // 判断是否显示 Hero Section（在首页和博客主页显示）
+  const showHeroSection = location.pathname === '/' || location.pathname === '/blog';
 
   // 注意：现在 posts 已经是分页后的数据，不需要再筛选
   // 筛选逻辑已经在后端/API 层完成
