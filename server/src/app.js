@@ -19,11 +19,12 @@ function createApp() {
   const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
       ? [
-          'http://82.156.185.63',
-          'https://www.betsy.cloud',  // 你的域名（HTTPS）
-          'http://www.betsy.cloud',   // 你的域名（HTTP）
-          'https://betsy.cloud',      // 不带 www 的域名（HTTPS）
-          'http://betsy.cloud'        // 不带 www 的域名（HTTP）
+          'http://82.156.185.63',      // IP 地址（HTTP）
+          'https://82.156.185.63',     // IP 地址（HTTPS）- 新增
+          'https://www.betsy.cloud',   // 你的域名（HTTPS）
+          'http://www.betsy.cloud',    // 你的域名（HTTP）
+          'https://betsy.cloud',       // 不带 www 的域名（HTTPS）
+          'http://betsy.cloud'         // 不带 www 的域名（HTTP）
         ]
       : ['http://localhost:3000', 'http://localhost:5002', 'http://localhost:5001'], // 开发环境：允许多个端口
     credentials: true,
