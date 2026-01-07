@@ -156,14 +156,13 @@ async function uploadContentImage_handler(req, res, next) {
 
       console.log('✅ 文件上传成功:', req.file);
 
-      // 构建图片 URL
+      // 构建图片路径（相对路径）
       const imagePath = `/uploads/content/images/${req.file.filename}`;
-      const imageUrl = `${process.env.API_BASE_URL || 'http://localhost:5001'}${imagePath}`;
 
-      console.log('✅ 图片 URL:', imageUrl);
+      console.log('✅ 图片路径:', imagePath);
 
-      // 返回图片 URL
-      success(res, { url: imageUrl }, '图片上传成功', CODE.CREATED);
+      // 返回图片路径（相对路径，支持IP和域名访问）
+      success(res, { url: imagePath }, '图片上传成功', CODE.CREATED);
     } catch (error) {
       // 如果处理失败，尝试删除已上传的文件
       if (req.file) {

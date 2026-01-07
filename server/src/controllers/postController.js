@@ -153,7 +153,7 @@ async function uploadCover(req, res, next) {
       
       Response.success(res, {
         ...updatedPost,
-        coverImage: `${process.env.API_BASE_URL || 'http://localhost:5001'}${coverPath}`
+        coverImage: coverPath  // 返回相对路径，支持IP和域名访问
       }, '封面上传成功');
     } catch (err) {
       next(err);
