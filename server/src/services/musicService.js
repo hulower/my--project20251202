@@ -20,16 +20,15 @@ class MusicService {
   async getMusicList() {
     const musicList = await musicRepository.findAll();
     
-    // 转换为前端需要的格式（添加完整 URL）
-    const baseUrl = process.env.API_BASE_URL || 'http://localhost:5001';
-    
+    // 返回相对路径，让前端自动拼接当前访问的域名
+    // 这样无论是通过 IP 还是域名访问都能正常工作
     return musicList.map(music => ({
       id: music.id,
       title: music.title,
       artist: music.artist,
       album: music.album,
-      url: `${baseUrl}${music.filePath}`,
-      cover: music.coverPath ? `${baseUrl}${music.coverPath}` : null,
+      url: music.filePath,  // 相对路径：/uploads/music/xxx.flac
+      cover: music.coverPath || null,  // 相对路径：/uploads/music/covers/xxx.jpg
       duration: music.duration,
       fileSize: music.fileSize,
       format: music.format,
@@ -53,15 +52,14 @@ class MusicService {
       throw error;
     }
     
-    const baseUrl = process.env.API_BASE_URL || 'http://localhost:5001';
-    
+    // 返回相对路径
     return {
       id: music.id,
       title: music.title,
       artist: music.artist,
       album: music.album,
-      url: `${baseUrl}${music.filePath}`,
-      cover: music.coverPath ? `${baseUrl}${music.coverPath}` : null,
+      url: music.filePath,  // 相对路径
+      cover: music.coverPath || null,  // 相对路径
       duration: music.duration,
       fileSize: music.fileSize,
       format: music.format,
