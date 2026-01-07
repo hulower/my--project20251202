@@ -51,10 +51,7 @@
     "eject": "react-scripts eject",
     "server": "node server/index.js",
     "server:prod": "NODE_ENV=production node server/index.js",
-    "dev": "concurrently \"npm start\" \"npm run server\"",
-    "deploy:vercel": "vercel --prod",
-    "deploy:render": "echo 'Push to GitHub and Render will auto-deploy'",
-    "db:test": "node server/scripts/test-connection.js"
+    "dev": "concurrently \"npm start\" \"npm run server\""
   },
   "eslintConfig": {
     "extends": [

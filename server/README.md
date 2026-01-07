@@ -13,20 +13,61 @@ server/
 │   ├── app.js                 # ⚙️  Express 应用配置
 │   ├── config/
 │   │   └── db.js              # 💾 数据库连接配置
-│   ├── models/
-│   │   ├── postRepository.js  # 🗄️  数据访问层（与数据库交互）
-│   │   └── postStore.js       # 📦 内存存储（已废弃，使用数据库替代）
-│   ├── services/
-│   │   └── postService.js     # 🧠 业务逻辑层（处理业务规则）
-│   ├── controllers/
-│   │   └── postController.js  # 🎮 控制器层（处理 HTTP 请求）
-│   └── routes/
-│       ├── healthRoutes.js    # 🏥 健康检查路由
-│       └── postRoutes.js      # 📝 博客文章路由
+│   ├── models/                # 🗄️  数据访问层（Repository）
+│   │   ├── commentRepository.js
+│   │   ├── likeRepository.js
+│   │   ├── musicRepository.js
+│   │   ├── postRepository.js
+│   │   ├── tagRepository.js
+│   │   └── userRepository.js
+│   ├── services/              # 🧠 业务逻辑层
+│   │   ├── authService.js
+│   │   ├── commentService.js
+│   │   ├── likeService.js
+│   │   ├── musicService.js
+│   │   ├── postService.js
+│   │   ├── tagService.js
+│   │   ├── uploadService.js
+│   │   └── userService.js
+│   ├── controllers/           # 🎮 控制器层
+│   │   ├── authController.js
+│   │   ├── commentController.js
+│   │   ├── likeController.js
+│   │   ├── musicController.js
+│   │   ├── postController.js
+│   │   ├── tagController.js
+│   │   ├── uploadController.js
+│   │   └── userController.js
+│   ├── middleware/            # 🔧 中间件
+│   │   ├── authMiddleware.js
+│   │   ├── contentImageUpload.js
+│   │   ├── musicUpload.js
+│   │   └── postCoverUpload.js
+│   ├── routes/                # 🛣️  路由层
+│   │   ├── authRoutes.js
+│   │   ├── commentRoutes.js
+│   │   ├── healthRoutes.js
+│   │   ├── likeRoutes.js
+│   │   ├── musicRoutes.js
+│   │   ├── postRoutes.js
+│   │   ├── tagRoutes.js
+│   │   ├── uploadRoutes.js
+│   │   └── userRoutes.js
+│   └── utils/                 # 🛠️  工具函数
+│       ├── geoip.js
+│       ├── jwt.js
+│       ├── password.js
+│       └── response.js
 ├── scripts/
-│   ├── init-db.sql            # 🛠️  数据库初始化脚本
-│   └── test-connection.js     # 🔍 数据库连接测试脚本
-└── DATABASE_GUIDE.md          # 📚 数据库配置指南
+│   └── init-db-correct.sql    # 🛠️  数据库初始化脚本（完整版，7个表）
+├── uploads/                   # 📁 用户上传文件存储
+│   ├── avatars/               # 用户头像
+│   ├── content/images/        # 文章内容图片
+│   ├── music/                 # 音乐文件和封面
+│   └── posts/covers/          # 文章封面
+├── ARCHITECTURE.md            # 📚 架构设计详解
+├── DATABASE_GUIDE.md          # 📚 数据库配置指南
+└── README.md                  # 📖 本文件
 ```
 
 ---
@@ -227,36 +268,141 @@ async function listPosts() {
 
 ## 🛣️ API 接口列表
 
-### 健康检查接口
+### 认证接口 `/api/auth`
 
-| 方法 | 路径 | 说明 | 示例 |
+| 方法 | 路径 | 说明 | 权限 |
 |------|------|------|------|
-| GET | `/api/hello` | 测试服务器是否正常 | `curl http://localhost:5001/api/hello` |
-| GET | `/api/status` | 查看服务器状态 | `curl http://localhost:5001/api/status` |
+| POST | `/register` | 用户注册 | 公开 |
+| POST | `/login` | 用户登录 | 公开 |
+| POST | `/refresh` | 刷新 Token | 公开 |
+| POST | `/logout` | 用户登出 | 需登录 |
 
-### 博客文章接口
+### 用户接口 `/api/users`
 
-| 方法 | 路径 | 说明 | 请求体 | 响应 |
-|------|------|------|--------|------|
-| GET | `/api/posts` | 获取所有文章 | - | `[{...}, {...}]` |
-| GET | `/api/posts/:id` | 获取单篇文章 | - | `{id, title, content, ...}` |
-| POST | `/api/posts` | 创建新文章 | `{title, content}` | `{id, title, content, ...}` |
-| PUT | `/api/posts/:id` | 更新文章 | `{title, content}` | `{id, title, content, ...}` |
-| DELETE | `/api/posts/:id` | 删除文章 | - | `{id, title, content, ...}` |
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| GET | `/profile` | 获取当前用户信息 | 需登录 |
+| PUT | `/profile` | 更新用户信息 | 需登录 |
+| POST | `/avatar` | 上传头像 | 需登录 |
+
+### 文章接口 `/api/posts`
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| GET | `/` | 获取文章列表 | 公开 |
+| GET | `/:id` | 获取文章详情 | 公开 |
+| GET | `/slug/:slug` | 通过 slug 获取文章 | 公开 |
+| POST | `/` | 创建文章 | editor+ |
+| PUT | `/:id` | 更新文章 | editor+ |
+| DELETE | `/:id` | 删除文章 | editor+ |
+
+### 评论接口 `/api/comments`
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| GET | `/post/:postId` | 获取文章评论 | 公开 |
+| POST | `/` | 发表评论 | user+ |
+| DELETE | `/:id` | 删除评论 | admin |
+
+### 点赞接口 `/api/likes`
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| POST | `/` | 点赞文章 | user+ |
+| DELETE | `/post/:postId` | 取消点赞 | user+ |
+| GET | `/post/:postId/status` | 获取点赞状态 | user+ |
+
+### 音乐接口 `/api/music`
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| GET | `/list` | 获取音乐列表 | 公开 |
+| GET | `/:id` | 获取音乐详情 | 公开 |
+| POST | `/upload` | 上传音乐 | editor+ |
+| PUT | `/:id` | 更新音乐信息 | editor+ |
+| DELETE | `/:id` | 删除音乐 | editor+ |
+
+### 标签接口 `/api/tags`
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| GET | `/` | 获取标签列表 | 公开 |
+| GET | `/:id` | 获取标签详情 | 公开 |
+| POST | `/` | 创建标签 | admin |
+| PUT | `/:id` | 更新标签 | admin |
+| DELETE | `/:id` | 删除标签 | admin |
+
+### 上传接口 `/api/upload`
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| POST | `/image` | 上传图片 | user+ |
+| POST | `/avatar` | 上传头像 | user+ |
+
+### 健康检查 `/api`
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| GET | `/health` | 服务健康检查 | 公开 |
+| GET | `/status` | 服务状态 | 公开 |
 
 ---
 
 ## 💾 数据库设计
 
-### posts 表结构
+### 数据表概览
 
-| 字段 | 类型 | 说明 | 示例 |
-|------|------|------|------|
-| `id` | INT | 主键，自增 | `1, 2, 3...` |
-| `title` | VARCHAR(255) | 文章标题 | `"我的第一篇博客"` |
-| `content` | TEXT | 文章内容 | `"这是内容..."` |
-| `created_at` | TIMESTAMP | 创建时间 | `2024-12-25 10:00:00` |
-| `updated_at` | TIMESTAMP | 更新时间 | `2024-12-25 11:30:00` |
+项目使用 **7 个数据表**：
+
+| 表名 | 说明 | 主要功能 |
+|------|------|---------|
+| `users` | 用户表 | 用户认证、角色权限 |
+| `posts` | 文章表 | 博客文章、分类、标签 |
+| `comments` | 评论表 | 文章评论、嵌套回复 |
+| `likes` | 点赞表 | 文章点赞记录 |
+| `music` | 音乐表 | 音乐文件、歌词 |
+| `tags` | 标签表 | 文章标签管理 |
+| `post_tags` | 文章标签关联表 | 多对多关系 |
+
+### 核心表结构示例
+
+#### users 表
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | INT | 主键 |
+| `username` | VARCHAR(50) | 用户名（唯一） |
+| `email` | VARCHAR(100) | 邮箱 |
+| `password` | VARCHAR(255) | 密码（bcrypt 加密） |
+| `role` | ENUM | visitor/user/editor/admin |
+| `avatar_url` | VARCHAR(255) | 头像 URL |
+
+#### posts 表
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | INT | 主键 |
+| `title` | VARCHAR(255) | 文章标题 |
+| `slug` | VARCHAR(255) | URL 友好标识（唯一） |
+| `content` | TEXT | 文章内容 |
+| `category` | VARCHAR(50) | 分类（技术博客/说说/学习笔记） |
+| `cover_image` | VARCHAR(500) | 封面图片 |
+| `music_id` | INT | 关联音乐 ID |
+| `view_count` | INT | 浏览量 |
+| `likes_count` | INT | 点赞数 |
+| `comments_count` | INT | 评论数 |
+
+#### music 表
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | INT | 主键 |
+| `title` | VARCHAR(255) | 歌曲标题 |
+| `artist` | VARCHAR(255) | 艺术家 |
+| `file_path` | VARCHAR(500) | 音乐文件路径 |
+| `cover_path` | VARCHAR(500) | 封面图片路径 |
+| `lyrics` | TEXT | 歌词内容（LRC 格式） |
+| `duration` | INT | 时长（秒） |
+| `play_count` | INT | 播放次数 |
+
+**完整数据库设计**请查看 `DATABASE_GUIDE.md` 和 `init-db-correct.sql`
 
 ---
 
@@ -264,17 +410,43 @@ async function listPosts() {
 
 ### 1. 启动 MySQL 服务
 ```bash
+# macOS
 brew services start mysql
+
+# Linux
+systemctl start mysql
 ```
 
 ### 2. 初始化数据库
 ```bash
-mysql -u root -p < server/scripts/init-db.sql
+# 方式 1：命令行导入
+mysql -u root -p < server/scripts/init-db-correct.sql
+
+# 方式 2：MySQL 客户端
+mysql -u root -p
+mysql> source /path/to/server/scripts/init-db-correct.sql;
+
+# 方式 3：宝塔面板
+# 进入数据库管理 -> 导入 -> 选择 init-db-correct.sql
 ```
 
-### 3. 测试数据库连接
+### 3. 配置环境变量
 ```bash
-npm run db:test
+# 在项目根目录创建 .env 文件
+vim .env
+```
+
+**必需的环境变量**：
+```env
+DB_HOST=127.0.0.1
+DB_USER=my_node-app
+DB_PASSWORD=your_password
+DB_NAME=my_node-app
+JWT_SECRET=your_jwt_secret
+JWT_REFRESH_SECRET=your_refresh_secret
+NODE_ENV=development
+PORT=5001
+API_BASE_URL=http://localhost:5001
 ```
 
 ### 4. 启动后端服务
@@ -285,10 +457,15 @@ npm run server
 ### 5. 测试接口
 ```bash
 # 测试健康检查
-curl http://localhost:5001/api/hello
+curl http://localhost:5001/api/health
 
 # 测试获取文章列表
 curl http://localhost:5001/api/posts
+
+# 测试用户注册
+curl -X POST http://localhost:5001/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"testuser","email":"test@example.com","password":"test123"}'
 ```
 
 ---
@@ -296,17 +473,23 @@ curl http://localhost:5001/api/posts
 ## 🔧 常用命令
 
 ```bash
-# 启动后端服务（开发环境）
-npm run server
+# 📦 依赖管理
+npm install                    # 安装依赖
+npm update                     # 更新依赖
 
-# 启动后端服务（生产环境）
-npm run server:prod
+# 🚀 开发环境
+npm run server                 # 启动后端服务（开发环境）
+npm run dev                    # 同时启动前后端
 
-# 同时启动前后端
-npm run dev
+# 🏗️ 生产环境
+npm run server:prod            # 启动后端服务（生产环境）
+pm2 start server/index.js --name blog-backend  # PM2 启动
+pm2 logs blog-backend          # 查看日志
+pm2 restart blog-backend       # 重启服务
+pm2 stop blog-backend          # 停止服务
 
-# 测试数据库连接
-npm run db:test
+# 🔍 调试
+curl http://localhost:5001/api/health  # 测试后端健康状态
 ```
 
 ---
@@ -351,10 +534,13 @@ npm run db:test
 4. 在 `postRepository.js` 添加数据库操作（如果需要）
 
 ### Q4: 如何添加用户认证？
-**A**: 可以：
-1. 创建 `userRoutes.js`、`userController.js`、`userService.js`、`userRepository.js`
-2. 创建 `authMiddleware.js` 中间件验证 Token
-3. 在需要认证的路由上添加中间件
+**A**: 项目已经实现了完整的用户认证系统：
+1. ✅ JWT 双 Token 认证（Access Token + Refresh Token）
+2. ✅ 角色权限管理（visitor / user / editor / admin）
+3. ✅ `authMiddleware.js` 中间件验证 Token
+4. ✅ 在需要认证的路由上已添加中间件
+
+查看 `src/routes/authRoutes.js` 和 `src/middleware/authMiddleware.js` 了解实现细节。
 
 ---
 
