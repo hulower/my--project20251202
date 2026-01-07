@@ -7,6 +7,14 @@
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-06B6D4?logo=tailwindcss)](https://tailwindcss.com/)
 
+## 🌐 在线体验
+
+🚀 **在线预览**：[https://www.betsy.cloud](https://www.betsy.cloud)
+
+欢迎访问在线演示站点，体验完整功能！
+
+---
+
 ## ✨ 项目特色
 
 ### 🎯 核心功能
