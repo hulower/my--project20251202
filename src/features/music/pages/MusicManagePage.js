@@ -22,6 +22,7 @@ import {
   FileText
 } from 'lucide-react';
 import * as musicApi from '../../../api/musicApi';
+import { parseLRCFile } from '../../../utils/lrcParser';
 
 /**
  * MusicManagePage - 音乐上传和管理页面
@@ -53,7 +54,8 @@ function MusicManagePage() {
   const [editLyrics, setEditLyrics] = useState('');
   const [editCoverFile, setEditCoverFile] = useState(null); // 新封面文件
   const [editCoverPreview, setEditCoverPreview] = useState(null); // 封面预览URL
-  const [lrcFileName, setLrcFileName] = useState(''); // LRC 文件名
+  const [lrcFileName, setLrcFileName] = useState(''); // LRC 文件名（编辑模式）
+  const [uploadLrcFileName, setUploadLrcFileName] = useState(''); // LRC 文件名（上传模式）
 
   // 预览音频
   const [previewingMusicId, setPreviewingMusicId] = useState(null);
@@ -153,6 +155,8 @@ function MusicManagePage() {
       setTitle('');
       setArtist('');
       setAlbum('');
+      setLyrics('');
+      setUploadLrcFileName('');
       setShowUploadForm(false);
 
       // 刷新列表
@@ -221,7 +225,7 @@ function MusicManagePage() {
     setLrcFileName(''); // Reset LRC file name
   };
 
-  // 处理 LRC 文件上传
+  // 处理 LRC 文件上传（编辑模式）
   const handleLrcFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -257,12 +261,19 @@ function MusicManagePage() {
             const decoder = new TextDecoder('gbk');
             const decodedContent = decoder.decode(arrayBuffer);
             
-            setEditLyrics(decodedContent);
+            // 解析 LRC 文件
+            const parsed = parseLRCFile(decodedContent);
+            
+            // 自动填充表单（编辑模式）- 每次上传都会更新
+            if (parsed.title) setEditTitle(parsed.title);
+            if (parsed.artist) setEditArtist(parsed.artist);
+            if (parsed.album) setEditAlbum(parsed.album);
+            setEditLyrics(parsed.lyrics || decodedContent);
             setLrcFileName(file.name);
             
             toast({
               title: "✓ LRC 文件加载成功",
-              description: `已加载 ${file.name} (GBK 编码)，歌词将支持时间戳滚动`,
+              description: parsed.title ? `已自动填充: ${parsed.title} - ${parsed.artist}` : `已加载 ${file.name} (GBK 编码)`,
             });
           } catch (err) {
             console.error('GBK 解码失败:', err);
@@ -272,12 +283,19 @@ function MusicManagePage() {
               const decoder = new TextDecoder('gb18030');
               const decodedContent = decoder.decode(arrayBuffer);
               
-              setEditLyrics(decodedContent);
+              // 解析 LRC 文件
+              const parsed = parseLRCFile(decodedContent);
+              
+              // 自动填充表单（编辑模式）- 每次上传都会更新
+              if (parsed.title) setEditTitle(parsed.title);
+              if (parsed.artist) setEditArtist(parsed.artist);
+              if (parsed.album) setEditAlbum(parsed.album);
+              setEditLyrics(parsed.lyrics || decodedContent);
               setLrcFileName(file.name);
               
               toast({
                 title: "✓ LRC 文件加载成功",
-                description: `已加载 ${file.name} (GB18030 编码)`,
+                description: parsed.title ? `已更新为: ${parsed.title} - ${parsed.artist}` : `已加载 ${file.name} (GB18030 编码)`,
               });
             } catch (err2) {
               console.error('GB18030 解码失败:', err2);
@@ -296,12 +314,129 @@ function MusicManagePage() {
         readerGBK.readAsArrayBuffer(file);
       } else {
         // UTF-8 解码成功
-        setEditLyrics(content);
+        // 解析 LRC 文件
+        const parsed = parseLRCFile(content);
+        
+        // 自动填充表单（编辑模式）- 每次上传都会更新
+        if (parsed.title) setEditTitle(parsed.title);
+        if (parsed.artist) setEditArtist(parsed.artist);
+        if (parsed.album) setEditAlbum(parsed.album);
+        setEditLyrics(parsed.lyrics || content);
         setLrcFileName(file.name);
         
         toast({
           title: "✓ LRC 文件加载成功",
-          description: `已加载 ${file.name}，歌词将支持时间戳滚动`,
+          description: parsed.title ? `已更新为: ${parsed.title} - ${parsed.artist}` : `已加载 ${file.name}`,
+        });
+      }
+    };
+    
+    readerUTF8.onerror = () => {
+      toast({
+        variant: "destructive",
+        title: "✗ 文件读取失败",
+        description: "无法读取文件内容，请重试",
+      });
+    };
+    
+    readerUTF8.readAsText(file, 'UTF-8');
+    
+    // 重置 input，允许重复上传同一文件
+    e.target.value = '';
+  };
+
+  // 处理 LRC 文件上传（上传模式）
+  const handleUploadLrcFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 检查文件类型
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith('.lrc') && !fileName.endsWith('.txt')) {
+      toast({
+        variant: "destructive",
+        title: "✗ 文件格式错误",
+        description: "请上传 .lrc 或 .txt 格式的歌词文件",
+      });
+      return;
+    }
+
+    // 先尝试 UTF-8 编码读取
+    const readerUTF8 = new FileReader();
+    readerUTF8.onload = (event) => {
+      const content = event.target.result;
+      
+      // 检测是否有乱码
+      const replacementCharCount = (content.match(/�/g) || []).length;
+      const hasInvalidChars = replacementCharCount > 3;
+      
+      if (hasInvalidChars) {
+        // UTF-8 解码失败，尝试 GBK
+        const readerGBK = new FileReader();
+        readerGBK.onload = (e) => {
+          try {
+            const arrayBuffer = e.target.result;
+            const decoder = new TextDecoder('gbk');
+            const decodedContent = decoder.decode(arrayBuffer);
+            
+            // 解析 LRC 文件
+            const parsed = parseLRCFile(decodedContent);
+            
+            // 自动填充表单（上传模式）- 每次上传都会更新
+            if (parsed.title) setTitle(parsed.title);
+            if (parsed.artist) setArtist(parsed.artist);
+            if (parsed.album) setAlbum(parsed.album);
+            setLyrics(parsed.lyrics || decodedContent);
+            setUploadLrcFileName(file.name);
+            
+            toast({
+              title: "✓ LRC 文件加载成功",
+              description: parsed.title ? `已自动填充: ${parsed.title} - ${parsed.artist}` : `已加载 ${file.name} (GBK 编码)`,
+            });
+          } catch (err) {
+            console.error('GBK 解码失败:', err);
+            try {
+              const arrayBuffer = e.target.result;
+              const decoder = new TextDecoder('gb18030');
+              const decodedContent = decoder.decode(arrayBuffer);
+              
+              const parsed = parseLRCFile(decodedContent);
+              if (parsed.title) setTitle(parsed.title);
+              if (parsed.artist) setArtist(parsed.artist);
+              if (parsed.album) setAlbum(parsed.album);
+              setLyrics(parsed.lyrics || decodedContent);
+              setUploadLrcFileName(file.name);
+              
+              toast({
+                title: "✓ LRC 文件加载成功",
+                description: parsed.title ? `已自动填充: ${parsed.title} - ${parsed.artist}` : `已加载 ${file.name} (GB18030 编码)`,
+              });
+            } catch (err2) {
+              setLyrics(content);
+              setUploadLrcFileName(file.name);
+              toast({
+                variant: "destructive",
+                title: "⚠ 文件编码可能有误",
+                description: "文件已加载，但可能显示乱码。",
+              });
+            }
+          }
+        };
+        readerGBK.readAsArrayBuffer(file);
+      } else {
+        // UTF-8 解码成功
+        const parsed = parseLRCFile(content);
+        
+        // 自动填充表单（上传模式）- 每次上传都会更新
+        if (parsed.title) setTitle(parsed.title);
+        if (parsed.artist) setArtist(parsed.artist);
+        if (parsed.album) setAlbum(parsed.album);
+        setLyrics(parsed.lyrics || content);
+        setUploadLrcFileName(file.name);
+        
+        toast({
+          title: "✓ LRC 文件加载成功",
+          description: parsed.title ? `已更新为: ${parsed.title} - ${parsed.artist}` : `已加载 ${file.name}`,
         });
       }
     };
@@ -601,16 +736,44 @@ function MusicManagePage() {
                   <label className="block text-sm font-medium mb-2">
                     歌词 <span className="text-gray-400 text-xs">(可选)</span>
                   </label>
+                  
+                  {/* LRC 文件上传 */}
+                  <div className="mb-2">
+                    <label
+                      htmlFor="upload-lrc-file-input"
+                      className="flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors"
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span className="text-sm">
+                        {uploadLrcFileName || '点击上传 LRC 文件（自动识别标题/艺术家/专辑）'}
+                      </span>
+                    </label>
+                    <input
+                      id="upload-lrc-file-input"
+                      type="file"
+                      accept=".lrc,.txt"
+                      onChange={handleUploadLrcFileUpload}
+                      className="hidden"
+                      disabled={uploading}
+                    />
+                    {uploadLrcFileName && (
+                      <p className="text-xs text-green-600 mt-1">
+                        ✓ 已加载: {uploadLrcFileName}
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* 歌词文本框 */}
                   <textarea
-                    placeholder="输入歌词内容（每行一句）"
+                    placeholder="输入歌词内容（每行一句）&#10;&#10;或上传 LRC 文件自动填充&#10;&#10;LRC 格式示例：&#10;[ti:歌曲名]&#10;[ar:艺术家]&#10;[al:专辑]&#10;[00:12.50]第一行歌词&#10;[00:15.80]第二行歌词"
                     value={lyrics}
                     onChange={(e) => setLyrics(e.target.value)}
                     disabled={uploading}
                     rows={6}
-                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-y font-mono"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    💡 提示：为读者提供更好的听歌体验
+                    💡 提示：上传 LRC 文件将自动提取标题、艺术家、专辑信息
                   </p>
                 </div>
               </div>
