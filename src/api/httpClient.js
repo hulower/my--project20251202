@@ -1,9 +1,10 @@
 import { authStorage } from '../utils/auth';
 
 // 根据环境自动切换 API 地址
+// 生产环境使用相对路径（空字符串），自动继承当前访问的域名/IP和协议
 const API_BASE = process.env.REACT_APP_API_BASE_URL || 
   (process.env.NODE_ENV === 'production' 
-    ? 'https://www.betsy.cloud' // 生产环境：使用 HTTPS 域名
+    ? '' // 生产环境：使用相对路径，自动适配域名/IP和HTTP/HTTPS
     : 'http://localhost:5001'); // 开发环境
 
 // 正在刷新 Token 的 Promise（防止并发刷新）

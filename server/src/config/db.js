@@ -28,18 +28,23 @@ const pool = mysql.createPool({
   host: process.env.DB_HOST || '127.0.0.1',
   
   // 数据库用户名（从环境变量读取，默认 root）
-  user: process.env.DB_USER || 'root',
+  user: process.env.DB_USER || 'my_node-app',
   
   // 数据库密码（⚠️ 必须从环境变量读取，不要硬编码）
   password: process.env.DB_PASSWORD,
   
   // 要连接的数据库名（从环境变量读取，默认 my_node_app）
-  database: process.env.DB_NAME || 'my_node_app',
+  database: process.env.DB_NAME || 'my_node-app',
   
   // 连接池配置
   waitForConnections: true, // 当连接池满时，等待而不是立即报错
-  connectionLimit: 10,      // 连接池最大连接数（同时最多 10 个查询）
-  queueLimit: 0             // 等待队列的最大长度（0 表示无限制）
+  connectionLimit: 5,       // ✅ 降低连接数以节省内存（适合2G服务器）
+  queueLimit: 0,            // 等待队列的最大长度（0 表示无限制）
+  
+  // 超时配置（防止连接挂起）
+  connectTimeout: 10000,    // 10秒连接超时
+  acquireTimeout: 10000,    // 10秒获取连接超时
+  timeout: 10000            // 10秒查询超时
 });
 
 // ========================================
