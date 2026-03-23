@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../../components/ui/select';
-import { PenSquare, Loader2, AlertCircle, FileText, Image as ImageIcon, X, Tag as TagIcon } from 'lucide-react';
+import { PenSquare, Loader2, AlertCircle, FileText, Image as ImageIcon, X } from 'lucide-react';
 import { Badge } from '../../../components/ui/badge';
 import { useToast } from '../../../hooks/use-toast';
 import ConfirmDialog from '../../../components/ConfirmDialog';
@@ -434,43 +434,6 @@ function BlogPage() {
 
         {/* 中间主内容区 - 文章卡片（3列，60%） */}
         <main className="lg:col-span-3 p-8 backdrop-blur-sm ">
-        {/* 顶部操作栏 */}
-        <div className="flex items-center justify-end ">
-          <RoleGuard roles={['editor', 'admin']}>
-            <Button 
-              onClick={() => setShowModal(true)} 
-              size="lg" 
-              className="gap-2"
-              style={{ 
-                fontWeight: '500',
-                letterSpacing: '0.01em'
-              }}
-            >
-              <PenSquare className="w-5 h-5" />
-              {pageInfo.buttonText}
-            </Button>
-          </RoleGuard>
-        </div>
-
-        {/* 标签筛选提示 */}
-        {tagSlug && (
-          <div className="mb-4 flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <TagIcon className="w-4 h-4 text-blue-600" />
-            <span className="text-sm text-blue-700 dark:text-blue-300">
-              正在显示标签为 <strong>#{currentTagName || tagSlug}</strong> 的文章
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/blog')}
-              className="ml-auto text-blue-600 hover:text-blue-700 hover:bg-blue-100"
-            >
-              <X className="w-4 h-4 mr-1" />
-              清除筛选
-            </Button>
-          </div>
-        )}
-
         {/* 文章列表 */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
@@ -550,6 +513,20 @@ function BlogPage() {
 
         {/* 右侧边栏 - 标签云（1列，20%） */}
         <div className="hidden lg:block lg:col-span-1 p-8">
+          <RoleGuard roles={['editor', 'admin']}>
+            <Button 
+              onClick={() => setShowModal(true)} 
+              size="lg" 
+              className="gap-2 w-full mb-4"
+              style={{ 
+                fontWeight: '500',
+                letterSpacing: '0.01em'
+              }}
+            >
+              <PenSquare className="w-5 h-5" />
+              {pageInfo.buttonText}
+            </Button>
+          </RoleGuard>
           <TagCloud refreshKey={tagCloudRefreshKey} />
         </div>
       </div>

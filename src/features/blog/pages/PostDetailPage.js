@@ -58,9 +58,8 @@ function PostDetailPage() {
 
     const headings = articleContent.querySelectorAll('h1, h2, h3, h4, h5, h6');
     headings.forEach((heading, index) => {
-      if (!heading.id) {
-        heading.id = `heading-${index}`;
-      }
+      // 统一覆盖赋值，确保与 ArticleToc 中的 ID 完全一致
+      heading.id = `heading-${index}`;
     });
   }, [post]);
 

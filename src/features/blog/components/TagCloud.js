@@ -143,14 +143,7 @@ function TagCloud({ refreshKey = 0 }) {
               title={tag.description || tag.name}
             >
               <span>{tag.name}</span>
-              {tag.postsCount > 0 && (
-                <span 
-                  className="ml-1.5 text-xs opacity-75"
-                  style={{ fontWeight: '400' }}
-                >
-                  {tag.postsCount}
-                </span>
-              )}
+            
             </button>
           ))}
         </div>

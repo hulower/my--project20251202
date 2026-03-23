@@ -185,9 +185,9 @@ function TagManagePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <Card>
-        <CardHeader>
+    <div className="container mx-auto px-4 pt-24 pb-8 max-w-6xl">
+      <Card >
+        <CardHeader > 
           <div className="flex items-center justify-between">
             <CardTitle className="text-2xl flex items-center gap-2">
               <Tag className="w-6 h-6" />
