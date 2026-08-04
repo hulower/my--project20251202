@@ -27,6 +27,7 @@
 const express = require('express');
 const postController = require('../controllers/postController');
 const tagController = require('../controllers/tagController');
+const aiSummaryController = require('../controllers/aiSummaryController');
 const { authenticate, authorize } = require('../middleware/authMiddleware');
 
 // 创建路由实例
@@ -217,6 +218,15 @@ router.delete('/:id/cover', postController.removeCover);
  * 浏览量会自动 +1
  */
 router.post('/:id/view', postController.incrementView);
+
+/**
+ * AI 生成文章摘要
+ * @route POST /api/posts/:id/generate-summary
+ * @description 使用 AI（DeepSeek + LangChain）生成文章摘要
+ * @param {number} id - 文章 ID（路径参数）
+ * @access Protected（需要 editor/admin 权限）
+ */
+router.post('/:id/generate-summary', authenticate, authorize(['editor', 'admin']), aiSummaryController.generatePostSummary);
 
 // ========================================
 // 文章标签相关路由

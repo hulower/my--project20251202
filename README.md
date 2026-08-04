@@ -19,7 +19,8 @@
 
 ### 🎯 核心功能
 
-- **📝 博客系统** - 支持 Markdown 富文本编辑、文章分类、标签管理
+- **📝 博客系统** - 支持 Markdown 富文本编辑、文章分类、标签管理、全屏独立编辑页
+- **🤖 AI 摘要生成** - 基于 DeepSeek + LangChain 自动生成文章摘要，支持一键生成与展示
 - **🎵 音乐播放器** - 集成音乐播放功能，支持歌词同步显示（.lrc 格式）
 - **💬 评论系统** - 支持嵌套回复、用户互动、设备信息显示
 - **👍 点赞功能** - 文章点赞、实时统计、防重复点赞
@@ -33,7 +34,8 @@
 
 - **🎭 MediaPipe 手势识别** - 集成 Google MediaPipe 实现手势交互
 - **✨ Three.js 粒子特效** - 首页 3D 粒子背景动画
-- **🎨 富文本编辑器** - 基于 TipTap 的现代化编辑器，支持图片插入、链接等
+- **🎨 富文本编辑器** - 基于 TipTap 的现代化编辑器，支持图片插入、链接、代码高亮等，全屏独立编辑页
+- **🤖 AI 摘要生成** - 基于 LangChain.js + DeepSeek API，支持一键生成文章摘要
 - **🔐 JWT 双 Token 认证** - Access Token + Refresh Token 机制
 - **📦 图片优化** - Sharp 自动压缩、WebP 格式转换
 - **🌐 GeoIP 定位** - 评论自动显示用户地理位置
@@ -84,6 +86,8 @@
 | Sharp | 0.34.5 | 图片处理 |
 | GeoIP Lite | 1.4.10 | IP 定位 |
 | CORS | 2.8.5 | 跨域处理 |
+| LangChain.js | 1.x | AI 摘要生成 |
+| DeepSeek API | Latest | 大模型服务 |
 
 ---
 
@@ -286,6 +290,11 @@ JWT_REFRESH_SECRET=your_refresh_secret  # JWT 刷新令牌密钥
 
 # 🌐 服务器配置
 API_BASE_URL=http://localhost:5001  # 后端服务地址（用于生成文件 URL）
+
+# 🤖 AI 配置（可选，不配置则摘要功能不可用）
+DEEPSEEK_API_KEY=your_deepseek_api_key  # DeepSeek API Key
+DEEPSEEK_BASE_URL=https://api.deepseek.com  # API 地址
+DEEPSEEK_MODEL=deepseek-chat           # 模型名称
 ```
 
 ### 4️⃣ 初始化数据库
@@ -572,6 +581,12 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 |------|------|------|------|
 | POST | `/image` | 上传图片 | user+ |
 | POST | `/avatar` | 上传头像 | user+ |
+
+### AI 接口 `/api/posts`
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| POST | `/:id/generate-summary` | 生成文章 AI 摘要 | editor+ |
 
 ### 健康检查 `/api`
 

@@ -76,7 +76,8 @@ html {
     -moz-osx-font-smoothing: grayscale;
     
     /* 背景图片设置 */
-    background-image: url('./assets/images/grigori.jpg');
+    background-color: #1a1a2e;
+    background-image: url('./assets/images/grigori.webp');
     background-size: cover;          /* 覆盖整个区域 */
     background-position: center;     /* 居中显示 */
     background-repeat: no-repeat;    /* 不重复 */

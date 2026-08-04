@@ -147,6 +147,7 @@ export function put(path, body) {
   });
 }
 
+
 export function del(path) {
   return request(path, { method: 'DELETE' });
 }

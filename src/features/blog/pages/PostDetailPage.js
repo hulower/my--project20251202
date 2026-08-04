@@ -3,16 +3,18 @@ import { useParams, useNavigate } from 'react-router-dom';
 import * as blogApi from '../../../api/blogApi';
 import { Button } from '../../../components/ui/button';
 import { Separator } from '../../../components/ui/separator';
-import { 
-  ArrowLeft, 
-  Edit, 
-  Trash2, 
+import {
+  ArrowLeft,
+  Edit,
+  Trash2,
   Loader2,
   AlertCircle,
   MessageCircle,
-  Heart
+  Heart,
+  Sparkles
 } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
+import { useAuth } from '../../../contexts/AuthContext';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 // import Sidebar from '../components/Sidebar'; // 移除左侧栏
 import ArticleMetaInfo from '../components/ArticleMetaInfo';
@@ -37,13 +39,42 @@ function PostDetailPage() {
   const { toast } = useToast();
   const { slug } = useParams();
   const navigate = useNavigate();
-  
+  const { hasRole } = useAuth();
+
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // 删除确认对话框
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // AI 摘要
+  const [generatingSummary, setGeneratingSummary] = useState(false);
+  const [summary, setSummary] = useState(null);
+
+  // 生成 AI 摘要
+  const handleGenerateSummary = async () => {
+    if (!post || !post.id) return;
+    try {
+      setGeneratingSummary(true);
+      const result = await blogApi.generateSummary(post.id);
+      setSummary(result.summary);
+      setPost(prev => ({ ...prev, summary: result.summary }));
+      toast({
+        title: '✓ 摘要生成成功',
+        description: 'AI 已自动生成文章摘要',
+      });
+    } catch (err) {
+      console.error('生成摘要失败:', err);
+      toast({
+        variant: 'destructive',
+        title: '✗ 生成失败',
+        description: err.message || '请稍后重试',
+      });
+    } finally {
+      setGeneratingSummary(false);
+    }
+  };
 
   useEffect(() => {
     loadPost();
@@ -74,6 +105,7 @@ function PostDetailPage() {
         : await blogApi.fetchPostBySlug(slug);
       
       setPost(data);
+      setSummary(data.summary || null);
       setError(null);
 
       // 增加浏览量（异步调用，不影响页面加载）
@@ -194,6 +226,59 @@ function PostDetailPage() {
                 <div className="mb-6">
                   <ArticleMetaInfo post={post} inline={true} />
                 </div>
+
+                {/* AI 摘要区域 */}
+                {(summary || hasRole(['editor', 'admin'])) && (
+                  <div className="mb-6">
+                    {summary ? (
+                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed" style={{ fontWeight: '400', letterSpacing: '0.01em' }}>
+                            <span className="font-semibold">📝 AI 摘要：</span>{summary}
+                          </p>
+                          {hasRole(['editor', 'admin']) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleGenerateSummary}
+                              disabled={generatingSummary}
+                              className="flex-shrink-0 h-7 text-xs"
+                              title="重新生成摘要"
+                            >
+                              {generatingSummary ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Sparkles className="w-3 h-3" />
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      hasRole(['editor', 'admin']) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleGenerateSummary}
+                          disabled={generatingSummary}
+                          className="gap-2"
+                        >
+                          {generatingSummary ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              AI 生成中...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-4 h-4" />
+                              AI 生成摘要
+                            </>
+                          )}
+                        </Button>
+                      )
+                    )}
+                  </div>
+                )}
 
                 <Separator className="my-6" />
 

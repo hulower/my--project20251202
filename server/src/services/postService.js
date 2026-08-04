@@ -247,7 +247,7 @@ class PostService {
    * - Service 负责确保数据符合业务要求
    * - 这样如果业务规则改变（比如标题不能超过 100 字），只需要改 Service
    */
-  async createPost({ title, content, category = '技术博客', slug = null, musicId = null }) {
+  async createPost({ title, content, category = '技术博客', slug = null, musicId = null, summary = null }) {
     // 数据验证
     if (!title || !content) {
       const error = new Error('标题和内容不能为空');
@@ -270,7 +270,7 @@ class PostService {
     finalSlug = await this.ensureUniqueSlug(finalSlug);
     
     // 验证通过，调用 Repository 创建文章
-    return await postRepository.createPost({ title, slug: finalSlug, content, category, musicId });
+    return await postRepository.createPost({ title, slug: finalSlug, content, category, musicId, summary });
   }
 
   // ========================================
@@ -299,7 +299,7 @@ class PostService {
    * 注意：这里没有验证 title 和 content 是否为空
    * 如果需要，可以添加和 createPost 一样的验证逻辑
    */
-  async updatePost(id, { title, content, category, slug = null, musicId }) {
+  async updatePost(id, { title, content, category, slug = null, musicId, summary }) {
     // 如果提供了分类，验证是否合法
     if (category) {
       const validCategories = ['技术博客', '说说', '学习笔记'];
@@ -335,12 +335,13 @@ class PostService {
       finalSlug = await this.ensureUniqueSlug(finalSlug, id);
     }
     
-    const updated = await postRepository.updatePost(id, { 
+    const updated = await postRepository.updatePost(id, {
       title: title || existingPost.title,
       slug: finalSlug,
       content: content || existingPost.content,
       category: category || existingPost.category,
-      musicId: musicId !== undefined ? musicId : existingPost.musicId
+      musicId: musicId !== undefined ? musicId : existingPost.musicId,
+      summary: summary !== undefined ? summary : existingPost.summary
     });
     
     // 文章不存在时的处理（理论上不会走到这里，因为前面已经检查过）
@@ -436,6 +437,30 @@ class PostService {
     return updated;
   }
   
+  /**
+   * 更新文章 AI 摘要
+   * @param {number} id - 文章 ID
+   * @param {string} summary - AI 生成的摘要
+   * @returns {Promise<Object>} 更新后的文章
+   */
+  async updatePostSummary(id, summary) {
+    const post = await postRepository.findPostById(id);
+    if (!post) {
+      const error = new Error('文章不存在');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    return await postRepository.updatePost(id, {
+      title: post.title,
+      slug: post.slug,
+      content: post.content,
+      category: post.category,
+      musicId: post.musicId,
+      summary,
+    });
+  }
+
   /**
    * 获取归档数据
    * @returns {Promise<Array>} 归档数据（按年月分组）

@@ -87,15 +87,17 @@ async function uploadAvatar(req, res, next) {
       const optimizedFilename = 'optimized-' + req.file.filename;
       const optimizedPath = path.join(__dirname, '../../uploads/avatars', optimizedFilename);
 
-      await sharp(originalPath)
-        .resize(300, 300, { // 调整为 300x300
+      // 先读入内存 Buffer（避免 Windows 文件占用锁），再交给 Sharp 处理
+      const buffer = await fs.readFile(originalPath);
+      await sharp(buffer)
+        .resize(300, 300, {
           fit: 'cover',
           position: 'center'
         })
-        .jpeg({ quality: 85 }) // 压缩为 JPEG，质量 85%
+        .jpeg({ quality: 85 })
         .toFile(optimizedPath);
 
-      // 删除原始文件
+      // 关闭 Sharp 输出流后再删除原始文件（Windows 下文件句柄不会立即释放）
       await fs.unlink(originalPath);
 
       // 构建文件 URL

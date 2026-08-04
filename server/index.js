@@ -25,7 +25,7 @@ const db = require('./src/config/db');
 
 // 设置服务器端口
 // 优先使用环境变量 PORT，如果没有则默认使用 5001
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.SERVER_PORT || 5001;
 
 // 调用工厂函数创建 Express 应用实例
 const app = createApp();

@@ -9,8 +9,12 @@
       name="description"
       content="Web site created using create-react-app"
     />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/favicon.ico" />
     
+    <!-- 预加载首屏背景图，提前下载 -->
+    <link rel="preload" as="image" href="%PUBLIC_URL%/images/grigori.webp" media="(min-width: 769px)">
+    <link rel="preload" as="image" href="%PUBLIC_URL%/images/grigori-mobile.webp" media="(max-width: 768px)">
+
     <!-- 霞鹜文楷字体 - 优雅的开源中文字体 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-lite-webfont@1.1.0/style.css" />
     

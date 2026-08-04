@@ -48,7 +48,7 @@ async function listPosts() {
   // 执行查询
   // db.query() 返回 [rows, fields]，我们只需要 rows（查询结果）
   const [rows] = await db.query(
-    'SELECT id, title, slug, content, category, cover_image as coverImage, music_id as musicId, view_count as viewCount, likes_count as likesCount, comments_count as commentsCount, created_at as createdAt, updated_at as updatedAt FROM posts ORDER BY created_at DESC'
+    'SELECT id, title, slug, content, category, cover_image as coverImage, music_id as musicId, view_count as viewCount, likes_count as likesCount, comments_count as commentsCount, summary, created_at as createdAt, updated_at as updatedAt FROM posts ORDER BY created_at DESC'
   );
   return rows;
 }
@@ -93,7 +93,7 @@ async function listPostsWithPagination({ page = 1, pageSize = 10, category = nul
   
   // 4. 查询当前页数据
   const dataSql = `
-    SELECT id, title, slug, content, category, cover_image as coverImage, music_id as musicId, view_count as viewCount, likes_count as likesCount, comments_count as commentsCount, created_at as createdAt, updated_at as updatedAt 
+    SELECT id, title, slug, content, category, cover_image as coverImage, music_id as musicId, view_count as viewCount, likes_count as likesCount, comments_count as commentsCount, summary, created_at as createdAt, updated_at as updatedAt
     FROM posts 
     ${whereClause}
     ORDER BY created_at DESC 
@@ -129,7 +129,7 @@ async function listPostsWithPagination({ page = 1, pageSize = 10, category = nul
  */
 async function findPostById(id) {
   const [rows] = await db.query(
-    'SELECT id, title, slug, content, category, cover_image as coverImage, music_id as musicId, view_count as viewCount, likes_count as likesCount, comments_count as commentsCount, created_at as createdAt, updated_at as updatedAt FROM posts WHERE id = ?',
+    'SELECT id, title, slug, content, category, cover_image as coverImage, music_id as musicId, view_count as viewCount, likes_count as likesCount, comments_count as commentsCount, summary, created_at as createdAt, updated_at as updatedAt FROM posts WHERE id = ?',
     [id] // 参数数组，对应 SQL 中的 ?
   );
   
@@ -200,11 +200,11 @@ async function checkSlugExists(slug, excludeId = null) {
  * 3. 再查询一次，获取完整的文章信息（包括时间戳）
  * 4. 返回完整的文章对象
  */
-async function createPost({ title, slug, content, category = '技术博客', musicId = null }) {
+async function createPost({ title, slug, content, category = '技术博客', musicId = null, summary = null }) {
   // 执行插入操作
   const [result] = await db.query(
-    'INSERT INTO posts (title, slug, content, category, music_id) VALUES (?, ?, ?, ?, ?)',
-    [title, slug, content, category, musicId]
+    'INSERT INTO posts (title, slug, content, category, music_id, summary) VALUES (?, ?, ?, ?, ?, ?)',
+    [title, slug, content, category, musicId, summary]
   );
   
   // result.insertId: 数据库自动生成的文章 ID
@@ -237,11 +237,11 @@ async function createPost({ title, slug, content, category = '技术博客', mus
  * - 如果文章存在并更新成功，affectedRows = 1
  * - 如果文章不存在，affectedRows = 0
  */
-async function updatePost(id, { title, slug, content, category, musicId }) {
+async function updatePost(id, { title, slug, content, category, musicId, summary }) {
   // 执行更新操作
   const [result] = await db.query(
-    'UPDATE posts SET title = ?, slug = ?, content = ?, category = ?, music_id = ? WHERE id = ?',
-    [title, slug, content, category, musicId, id]
+    'UPDATE posts SET title = ?, slug = ?, content = ?, category = ?, music_id = ?, summary = ? WHERE id = ?',
+    [title, slug, content, category, musicId, summary, id]
   );
   
   // 检查是否更新成功

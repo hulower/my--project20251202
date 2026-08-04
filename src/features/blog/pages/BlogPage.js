@@ -8,32 +8,12 @@ import PostCard from '../components/PostCard';
 import MoodCard from '../components/MoodCard';
 import NoteCard from '../components/NoteCard';
 import HeroSection from '../components/HeroSection';
-import TagSelector from '../components/TagSelector';
 import TagCloud from '../components/TagCloud';
 import PaginationWrapper from '../../../components/ui/pagination-wrapper';
 import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
-import { Textarea } from '../../../components/ui/textarea';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../../../components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../../components/ui/select';
-import { PenSquare, Loader2, AlertCircle, FileText, Image as ImageIcon, X } from 'lucide-react';
-import { Badge } from '../../../components/ui/badge';
+import { PenSquare, Loader2, AlertCircle, FileText } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
 import ConfirmDialog from '../../../components/ConfirmDialog';
-import RichTextEditor from '../../../components/RichTextEditor/RichTextEditor';
 import { RoleGuard } from '../../../components/ProtectedRoute';
 
 function BlogPage() {
@@ -46,27 +26,12 @@ function BlogPage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [editingPost, setEditingPost] = useState(null);
   const [currentTagName, setCurrentTagName] = useState(''); // 当前筛选的标签名称
-  
+
   // 删除确认对话框
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingPost, setDeletingPost] = useState(null);
-  const [formData, setFormData] = useState({ 
-    title: '', 
-    content: '', 
-    category: '技术博客',
-    musicId: null,
-    tagIds: []
-  });
-  const [musicList, setMusicList] = useState([]); // 音乐列表
-  
-  // 文章配图相关状态
-  const [coverImageFile, setCoverImageFile] = useState(null);
-  const [coverImagePreview, setCoverImagePreview] = useState(null);
-  const [shouldRemoveCover, setShouldRemoveCover] = useState(false); // 标记是否需要删除封面
-  
+
   // 分页相关状态
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -137,19 +102,6 @@ function BlogPage() {
     setCurrentPage(1);
   }, [currentCategory, tagSlug]);
 
-  // 加载音乐列表
-  useEffect(() => {
-    const loadMusicList = async () => {
-      try {
-        const data = await musicApi.fetchMusicList();
-        setMusicList(data);
-      } catch (err) {
-        console.error('加载音乐列表失败:', err);
-      }
-    };
-    loadMusicList();
-  }, []);
-
   const loadPosts = async (page = 1, category = null, tag = null) => {
     try {
       setLoading(true);
@@ -217,82 +169,6 @@ function BlogPage() {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.title.trim() || !formData.content.trim()) {
-      toast({
-        variant: "destructive",
-        title: "✗ 保存失败",
-        description: "标题和内容不能为空",
-      });
-      return;
-    }
-
-    try {
-      let savedPost;
-      if (editingPost) {
-        savedPost = await blogApi.updatePost(editingPost.id, formData);
-        toast({
-          title: "✓ 更新成功",
-          description: "文章已更新。",
-        });
-      } else {
-        savedPost = await blogApi.createPost(formData);
-        toast({
-          title: "✓ 创建成功",
-          description: "文章已发布。",
-        });
-      }
-      
-      // 如果标记了需要删除封面
-      if (shouldRemoveCover && savedPost?.id) {
-        await blogApi.removeCoverImage(savedPost.id);
-        toast({
-          title: "✓ 封面已删除",
-          description: "文章封面已移除。",
-        });
-      }
-      // 如果有新的封面图片，上传封面
-      else if (coverImageFile && savedPost?.id) {
-        const coverFormData = new FormData();
-        coverFormData.append('cover', coverImageFile);
-        await blogApi.uploadCoverImage(savedPost.id, coverFormData);
-        toast({
-          title: "✓ 封面上传成功",
-          description: "文章封面已保存。",
-        });
-      }
-      
-      // 保存标签（包括清空标签的情况）
-      if (savedPost?.id && formData.tagIds !== undefined) {
-        try {
-          await tagApi.setPostTags(savedPost.id, formData.tagIds);
-          // 标签保存成功，触发标签云刷新
-          setTagCloudRefreshKey(prev => prev + 1);
-        } catch (tagError) {
-          console.error('保存标签失败:', tagError);
-          // 标签保存失败不影响文章保存，只显示警告
-          toast({
-            variant: "warning",
-            title: "⚠️ 标签保存失败",
-            description: "文章已保存，但标签设置失败。",
-          });
-        }
-      }
-      
-      // 重新加载当前页
-      await loadPosts(currentPage, currentCategory);
-      resetForm();
-    } catch (err) {
-      console.error('保存失败:', err);
-      toast({
-        variant: "destructive",
-        title: "✗ 保存失败",
-        description: err.message,
-      });
-    }
-  };
-
   // 处理页码变更
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
@@ -304,23 +180,7 @@ function BlogPage() {
   };
 
   const handleEdit = (post) => {
-    setEditingPost(post);
-    setFormData({ 
-      title: post.title, 
-      content: post.content,
-      category: post.category || '技术博客',
-      musicId: post.musicId || null,
-      tagIds: post.tags ? post.tags.map(tag => tag.id) : []
-    });
-    // 设置现有的封面图片（用于预览）
-    if (post.coverImage) {
-      setCoverImagePreview(post.coverImage);
-    } else {
-      setCoverImagePreview(null);
-    }
-    setCoverImageFile(null); // 编辑时清空文件对象
-    setShouldRemoveCover(false); // 重置删除标志
-    setShowModal(true);
+    navigate(`/blog/edit/${post.id}`);
   };
 
   const handleDelete = (id, title) => {
@@ -351,58 +211,6 @@ function BlogPage() {
       setDeleteDialogOpen(false);
       setDeletingPost(null);
     }
-  };
-
-  // 处理封面图片选择
-  const handleCoverImageChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // 验证文件类型
-      if (!file.type.startsWith('image/')) {
-        toast({
-          variant: "destructive",
-          title: "✗ 文件类型错误",
-          description: "请选择图片文件",
-        });
-        return;
-      }
-      
-      // 验证文件大小 (最大 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          variant: "destructive",
-          title: "✗ 文件过大",
-          description: "图片大小不能超过 5MB",
-        });
-        return;
-      }
-      
-      setCoverImageFile(file);
-      setCoverImagePreview(URL.createObjectURL(file));
-      setShouldRemoveCover(false); // 选择新图片时，取消删除标志
-    }
-  };
-
-  // 删除封面图片
-  const handleRemoveCoverImage = () => {
-    setCoverImageFile(null);
-    setCoverImagePreview(null);
-    setShouldRemoveCover(true); // 标记需要删除封面
-  };
-
-  const resetForm = () => {
-    setFormData({ 
-      title: '', 
-      content: '', 
-      category: currentCategory || '技术博客',
-      musicId: null,
-      tagIds: []
-    });
-    setCoverImageFile(null);
-    setCoverImagePreview(null);
-    setShouldRemoveCover(false); // 重置删除标志
-    setEditingPost(null);
-    setShowModal(false);
   };
 
   // 平滑滚动到内容区
@@ -458,7 +266,7 @@ function BlogPage() {
               }
             </p>
             <RoleGuard roles={['editor', 'admin']}>
-              <Button onClick={() => setShowModal(true)} variant="outline" className="gap-2">
+              <Button onClick={() => navigate('/blog/new', { state: { category: currentCategory || '技术博客' } })} variant="outline" className="gap-2">
                 <PenSquare className="w-4 h-4" />
                 {pageInfo.buttonText}
               </Button>
@@ -515,7 +323,7 @@ function BlogPage() {
         <div className="hidden lg:block lg:col-span-1 p-8">
           <RoleGuard roles={['editor', 'admin']}>
             <Button 
-              onClick={() => setShowModal(true)} 
+              onClick={() => navigate('/blog/new', { state: { category: currentCategory || '技术博客' } })}
               size="lg" 
               className="gap-2 w-full mb-4"
               style={{ 
@@ -530,158 +338,6 @@ function BlogPage() {
           <TagCloud refreshKey={tagCloudRefreshKey} />
         </div>
       </div>
-
-      {/* 编辑/新建文章对话框 */}
-      <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="sm:max-w-[600px] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <PenSquare className="w-5 h-5" />
-              {editingPost ? '编辑文章' : '写新文章'}
-            </DialogTitle>
-            <DialogDescription>
-              {editingPost ? '修改文章内容并保存' : '开始你的创作之旅'}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto flex-1 pl-2 pr-12">
-            <div className="space-y-2">
-              <label htmlFor="category" className="text-sm font-medium">
-                文章分类
-              </label>
-              <Select
-                value={formData.category}
-                onValueChange={(value) => setFormData({ ...formData, category: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="选择分类" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="技术博客">📝 技术博客</SelectItem>
-                  <SelectItem value="说说">💬 说说</SelectItem>
-                  <SelectItem value="学习笔记">📚 学习笔记</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="musicId" className="text-sm font-medium flex items-center gap-2">
-                🎵 文章配乐
-                <span className="text-xs text-gray-500 font-normal">（可选）</span>
-              </label>
-              <Select
-                value={formData.musicId ? String(formData.musicId) : 'none'}
-                onValueChange={(value) => setFormData({ ...formData, musicId: value === 'none' ? null : Number(value) })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="无配乐" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">无配乐</SelectItem>
-                  {musicList.map(music => (
-                    <SelectItem key={music.id} value={String(music.id)}>
-                      {music.title} - {music.artist}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {formData.musicId && (
-                <p className="text-xs text-gray-500">
-                  💡 提示：选择的音乐将在文章详情页中显示播放器
-                </p>
-              )}
-            </div>
-
-            {/* 文章配图 */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                🖼️ 文章配图
-                <span className="text-xs text-gray-500 font-normal">（可选）</span>
-              </label>
-              
-              {coverImagePreview ? (
-                <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50 dark:bg-gray-900">
-                  <img 
-                    src={coverImagePreview} 
-                    alt="封面预览" 
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleRemoveCoverImage}
-                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg z-10"
-                    title="删除封面"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div
-                  onClick={() => document.getElementById('cover-image-upload').click()}
-                  className="w-full aspect-video border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-50 transition-all"
-                >
-                  <ImageIcon className="w-10 h-10 text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-600 font-medium">点击上传封面图片</p>
-                  <p className="text-xs text-gray-400 mt-1">推荐尺寸: 1200×675 (16:9)</p>
-                  <p className="text-xs text-gray-400">支持 JPG、PNG、WEBP (最大5MB)</p>
-                </div>
-              )}
-              
-              <input
-                id="cover-image-upload"
-                type="file"
-                accept="image/jpeg,image/jpg,image/png,image/webp"
-                onChange={handleCoverImageChange}
-                className="hidden"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="title" className="text-sm font-medium">
-                文章标题
-              </label>
-              <Input
-                id="title"
-                placeholder="输入文章标题..."
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label htmlFor="content" className="text-sm font-medium">
-                文章内容
-              </label>
-              <RichTextEditor
-                value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                placeholder="开始你的创作...点击工具栏格式化文本"
-              />
-            </div>
-
-            {/* 标签选择器 */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                🏷️ 文章标签
-                <span className="text-xs text-gray-500 font-normal">（可选）</span>
-              </label>
-              <TagSelector
-                selectedTagIds={formData.tagIds}
-                onChange={(tagIds) => setFormData({ ...formData, tagIds })}
-              />
-            </div>
-          </form>
-
-          <DialogFooter className="mt-4">
-            <Button type="button" variant="outline" onClick={resetForm}>
-              取消
-            </Button>
-            <Button onClick={handleSubmit}>
-              {editingPost ? '保存修改' : '发布文章'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* 删除确认对话框 */}
       <ConfirmDialog

@@ -97,6 +97,15 @@ export function fetchArchives() {
  * @param {number} limit - 返回结果数量限制
  * @returns {Promise} - 搜索结果
  */
+/**
+ * AI 生成文章摘要
+ * @param {number} id - 文章 ID
+ * @returns {Promise} - { summary: string }
+ */
+export function generateSummary(id) {
+  return post(`/api/posts/${id}/generate-summary`);
+}
+
 export function searchPosts(keyword, limit = 10) {
   const params = new URLSearchParams();
   params.append('q', keyword);

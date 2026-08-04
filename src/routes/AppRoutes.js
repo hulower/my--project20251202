@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import BlogPage from '../features/blog/pages/BlogPage';
 import PostDetailPage from '../features/blog/pages/PostDetailPage';
+import EditorPage from '../features/blog/pages/EditorPage';
 import ArchivePage from '../features/blog/pages/ArchivePage';
 import TagManagePage from '../features/blog/pages/TagManagePage';
 import MusicManagePage from '../features/music/pages/MusicManagePage';
@@ -59,7 +60,24 @@ function AppRoutes() {
       />
       
       {/* 受保护路由 - 需要登录且需要特定角色 */}
-      <Route 
+      <Route
+        path="/blog/new"
+        element={
+          <ProtectedRoute roles={['editor', 'admin']}>
+            <EditorPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/blog/edit/:id"
+        element={
+          <ProtectedRoute roles={['editor', 'admin']}>
+            <EditorPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/music-manage" 
         element={
           <ProtectedRoute roles={['editor', 'admin']}>
