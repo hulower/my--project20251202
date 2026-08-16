@@ -457,6 +457,79 @@ async function deleteAccount(req, res, next) {
 }
 
 // ========================================
+// 8. 重置密码
+// ========================================
+
+/**
+ * 重置密码（直接邮箱 + 新密码，无需邮件验证）
+ * POST /api/auth/reset-password
+ *
+ * 请求体：
+ * {
+ *   "email": "zhangsan@example.com",
+ *   "newPassword": "newPass456"
+ * }
+ *
+ * 响应：
+ * {
+ *   "code": 200,
+ *   "success": true,
+ *   "message": "密码重置成功，请使用新密码登录",
+ *   "data": null
+ * }
+ */
+async function resetPassword(req, res, next) {
+  try {
+    const { email, newPassword } = req.body;
+
+    console.log('📥 收到重置密码请求:', { email });
+
+    // ========================================
+    // 参数验证
+    // ========================================
+    if (!email || !newPassword) {
+      const error = new Error('邮箱和新密码不能为空');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      const error = new Error('邮箱格式不正确');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (newPassword.length < 6) {
+      const error = new Error('新密码至少6个字符');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (newPassword.length > 100) {
+      const error = new Error('新密码最多100个字符');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // ========================================
+    // 调用 Service 处理业务逻辑
+    // ========================================
+    await authService.resetPassword(email.trim().toLowerCase(), newPassword);
+
+    console.log('✅ 密码重置成功');
+
+    // ========================================
+    // 返回响应
+    // ========================================
+    Response.success(res, null, '密码重置成功，请使用新密码登录');
+  } catch (err) {
+    console.error('❌ 重置密码失败:', err.message);
+    next(err);
+  }
+}
+
+// ========================================
 // 导出控制器函数
 // ========================================
 module.exports = {
@@ -467,6 +540,7 @@ module.exports = {
   getCurrentUser,
   changePassword,
   deleteAccount,
+  resetPassword,
 };
 
 

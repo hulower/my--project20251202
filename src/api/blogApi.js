@@ -1,4 +1,5 @@
-import { get, post, put, del, upload } from './httpClient';
+import { get, post, put, del, upload, API_BASE } from './httpClient';
+import { authStorage } from '../utils/auth';
 
 /**
  * 获取文章列表（支持分页和分类筛选）
@@ -104,6 +105,56 @@ export function fetchArchives() {
  */
 export function generateSummary(id) {
   return post(`/api/posts/${id}/generate-summary`);
+}
+
+/**
+ * AI 流式生成文章摘要（SSE，打字机效果）
+ * @param {number} id - 文章 ID
+ * @param {function} onToken - 每收到一个 token 回调
+ * @param {function} onDone - 生成完成回调
+ * @param {function} onError - 错误回调
+ */
+export async function generateSummaryStream(id, onToken, onDone, onError) {
+  const token = authStorage.getAccessToken();
+  const url = `${API_BASE}/api/posts/${id}/generate-summary-stream`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop(); // 最后一行可能不完整
+
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        try {
+          const data = JSON.parse(line.slice(6));
+          if (data.type === 'token') {
+            onToken(data.content);
+          } else if (data.type === 'done') {
+            onDone(data.summary);
+          } else if (data.error) {
+            onError(new Error(data.error));
+          }
+        } catch (e) {
+          // 跳过解析失败的行
+        }
+      }
+    }
+  }
 }
 
 export function searchPosts(keyword, limit = 10) {

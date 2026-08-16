@@ -5,13 +5,15 @@ import { Separator } from '../../../components/ui/separator';
 import { Loader2, Github, ChevronDown, ChevronRight } from 'lucide-react';
 import * as userApi from '../../../api/userApi';
 import { API_BASE } from '../../../api/httpClient';
+import { useAuth } from '../../../contexts/AuthContext';
 
 function Sidebar({ stats = { posts: 0, categories: 0, tags: 0 } }) {
+  const { user } = useAuth();     // 读取全局用户状态，头像更新后自动同步
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('我的博客');
   const [userBio, setUserBio] = useState('趁年轻，做自己想做的！');
-  
+
   // 可折叠列表的展开状态
   const [expandedSections, setExpandedSections] = useState({
     anime: false,
@@ -27,34 +29,35 @@ function Sidebar({ stats = { posts: 0, categories: 0, tags: 0 } }) {
     }));
   };
 
-  // 组件加载时获取博主信息（个人博客始终显示博主信息）
+  // 获取博主信息（始终显示博主的信息）
   useEffect(() => {
+    // 如果当前登录用户就是博主（ID=1），直接用 Context 里的最新数据
+    if (user && user.id === 1) {
+      setUserName(user.username || '我的博客');
+      setUserBio(user.bio || '趁年轻，做自己想做的！');
+      setAvatarUrl(user.avatarUrl ? `${API_BASE}${user.avatarUrl}` : null);
+      setLoading(false);
+      return;
+    }
+    // 否则调 API 获取博主信息
     fetchBlogOwnerInfo();
-  }, []); // 空依赖数组，只在组件挂载时获取一次
+  }, [user]); // 监听 user 变化，头像更新后自动刷新
 
-  // 获取博主信息（个人博客的核心：始终显示博主信息，与访问者登录状态无关）
   const fetchBlogOwnerInfo = async () => {
     try {
       setLoading(true);
-      
-      // 个人博客始终显示博主（ID=1）的信息
-      // 不管谁访问（游客、注册用户、博主本人），侧边栏都显示博主的个人信息
-      const BLOG_OWNER_ID = 1; // 博主的用户 ID
+      const BLOG_OWNER_ID = 1;
       const data = await userApi.fetchUserById(BLOG_OWNER_ID);
-      
-      // 如果有头像 URL，设置完整路径
+
       if (data.avatarUrl) {
         setAvatarUrl(`${API_BASE}${data.avatarUrl}`);
       } else {
         setAvatarUrl(null);
       }
-      
-      // 更新用户名和简介
       if (data.username) setUserName(data.username);
       if (data.bio) setUserBio(data.bio);
     } catch (error) {
       console.error('获取博主信息失败:', error);
-      // 发生错误时，显示默认信息
       setAvatarUrl(null);
       setUserName('我的博客');
       setUserBio('趁年轻，做自己想做的！');

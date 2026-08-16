@@ -96,4 +96,18 @@ export function getCurrentUser() {
   return get('/api/auth/me');
 }
 
+/**
+ * 重置密码（直接邮箱 + 新密码，无需邮件验证）
+ *
+ * @param {string} email - 注册邮箱
+ * @param {string} newPassword - 新密码
+ * @returns {Promise<void>}
+ *
+ * @example
+ * await resetPassword('zhangsan@example.com', 'newPass456');
+ */
+export function resetPassword(email, newPassword) {
+  return post('/api/auth/reset-password', { email, newPassword });
+}
+
 

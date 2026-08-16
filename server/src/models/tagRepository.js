@@ -147,18 +147,27 @@ const tagRepository = {
    * 为文章添加标签
    */
   async addToPost(postId, tagId) {
+    const connection = await pool.getConnection();
     try {
-      await pool.query(
+      await connection.beginTransaction();
+      await connection.query(
         'INSERT INTO post_tags (post_id, tag_id) VALUES (?, ?)',
         [postId, tagId]
       );
+      await connection.query(
+        'UPDATE tags SET posts_count = posts_count + 1 WHERE id = ?',
+        [tagId]
+      );
+      await connection.commit();
       return true;
     } catch (error) {
-      // 如果是重复键错误，忽略
+      await connection.rollback();
       if (error.code === 'ER_DUP_ENTRY') {
         return false;
       }
       throw error;
+    } finally {
+      connection.release();
     }
   },
 
@@ -166,11 +175,27 @@ const tagRepository = {
    * 从文章移除标签
    */
   async removeFromPost(postId, tagId) {
-    const [result] = await pool.query(
-      'DELETE FROM post_tags WHERE post_id = ? AND tag_id = ?',
-      [postId, tagId]
-    );
-    return result.affectedRows > 0;
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      const [result] = await connection.query(
+        'DELETE FROM post_tags WHERE post_id = ? AND tag_id = ?',
+        [postId, tagId]
+      );
+      if (result.affectedRows > 0) {
+        await connection.query(
+          'UPDATE tags SET posts_count = GREATEST(posts_count - 1, 0) WHERE id = ?',
+          [tagId]
+        );
+      }
+      await connection.commit();
+      return result.affectedRows > 0;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   },
 
   /**
@@ -180,19 +205,38 @@ const tagRepository = {
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
-      
-      // 删除该文章的所有标签
+
+      // 1. 查出旧标签，清理它们的 posts_count
+      const [oldTags] = await connection.query(
+        'SELECT tag_id FROM post_tags WHERE post_id = ?',
+        [postId]
+      );
+      for (const tag of oldTags) {
+        await connection.query(
+          'UPDATE tags SET posts_count = GREATEST(posts_count - 1, 0) WHERE id = ?',
+          [tag.tag_id]
+        );
+      }
+
+      // 2. 删除该文章的所有旧标签关联
       await connection.query('DELETE FROM post_tags WHERE post_id = ?', [postId]);
-      
-      // 添加新标签
+
+      // 3. 添加新标签关联
       if (tagIds && tagIds.length > 0) {
         const values = tagIds.map(tagId => [postId, tagId]);
         await connection.query(
           'INSERT INTO post_tags (post_id, tag_id) VALUES ?',
           [values]
         );
+        // 4. 更新新标签的 posts_count
+        for (const tagId of tagIds) {
+          await connection.query(
+            'UPDATE tags SET posts_count = posts_count + 1 WHERE id = ?',
+            [tagId]
+          );
+        }
       }
-      
+
       await connection.commit();
       return true;
     } catch (error) {

@@ -494,6 +494,55 @@ class AuthService {
       throw err;
     }
   }
+
+  // ========================================
+  // 8. 重置密码
+  // ========================================
+
+  /**
+   * 重置密码（直接邮箱 + 新密码，无需邮件验证）
+   *
+   * 流程：
+   * 1. 根据邮箱查找用户
+   * 2. 加密新密码并更新
+   * 3. 清除 Refresh Token（强制重新登录）
+   *
+   * @param {string} email - 用户邮箱
+   * @param {string} newPassword - 新密码（明文）
+   * @returns {Promise<void>}
+   */
+  async resetPassword(email, newPassword) {
+    try {
+      console.log('🔄 开始重置密码流程:', { email });
+
+      const user = await userRepository.findByEmailWithPassword(email);
+
+      if (!user) {
+        const error = new Error('该邮箱未注册');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // 校验新密码不能与旧密码相同
+      const isSamePassword = await verifyPassword(newPassword, user.password);
+      if (isSamePassword) {
+        const error = new Error('新密码不能与旧密码相同');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      const hashedPassword = await hashPassword(newPassword);
+      await userRepository.updatePassword(user.id, hashedPassword);
+
+      // 清除 Refresh Token，强制重新登录
+      await userRepository.updateRefreshToken(user.id, null);
+
+      console.log('✅ 重置密码流程完成:', user.username);
+    } catch (err) {
+      console.error('❌ 重置密码失败:', err.message);
+      throw err;
+    }
+  }
 }
 
 // ========================================

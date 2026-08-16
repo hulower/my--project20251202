@@ -6,7 +6,7 @@
  */
 
 const postService = require('../services/postService');
-const { generateSummary } = require('../services/aiSummaryService');
+const { generateSummary, generateSummaryStream } = require('../services/aiSummaryService');
 const Response = require('../utils/response');
 
 /**
@@ -43,4 +43,55 @@ async function generatePostSummary(req, res, next) {
   }
 }
 
-module.exports = { generatePostSummary };
+/**
+ * 流式生成文章 AI 摘要（SSE）
+ * POST /api/posts/:id/generate-summary-stream
+ */
+async function generatePostSummaryStream(req, res, next) {
+  const { id } = req.params;
+  console.log(`🤖 收到流式摘要生成请求: postId=${id}`);
+
+  // 设置 SSE 响应头
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');  // 禁用 Nginx 缓冲
+
+  let summary = '';
+
+  try {
+    const post = await postService.getPostById(Number(id));
+    if (!post) {
+      res.write(`data: ${JSON.stringify({ error: '文章不存在' })}\n\n`);
+      res.end();
+      return;
+    }
+    if (!post.content) {
+      res.write(`data: ${JSON.stringify({ error: '文章内容为空' })}\n\n`);
+      res.end();
+      return;
+    }
+
+    // 发送开始事件
+    res.write(`data: ${JSON.stringify({ type: 'start' })}\n\n`);
+
+    // 逐 token 推送
+    for await (const token of generateSummaryStream(post.content)) {
+      summary += token;
+      res.write(`data: ${JSON.stringify({ type: 'token', content: token })}\n\n`);
+    }
+
+    // 持久化完整摘要
+    await postService.updatePostSummary(Number(id), summary);
+
+    // 发送完成事件
+    res.write(`data: ${JSON.stringify({ type: 'done', summary })}\n\n`);
+    res.end();
+  } catch (err) {
+    console.error('❌ 流式摘要失败:', err.message);
+    res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+    res.end();
+  }
+}
+
+module.exports = { generatePostSummary, generatePostSummaryStream };

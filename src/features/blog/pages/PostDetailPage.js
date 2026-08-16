@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
 import { useAuth } from '../../../contexts/AuthContext';
-import ConfirmDialog from '../../../components/ConfirmDialog';
 // import Sidebar from '../components/Sidebar'; // 移除左侧栏
 import ArticleMetaInfo from '../components/ArticleMetaInfo';
 import ArticleToc from '../components/ArticleToc';
@@ -45,33 +44,39 @@ function PostDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // 删除确认对话框
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-
   // AI 摘要
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [summary, setSummary] = useState(null);
 
-  // 生成 AI 摘要
+  // 生成 AI 摘要（流式，打字机效果）
   const handleGenerateSummary = async () => {
     if (!post || !post.id) return;
     try {
       setGeneratingSummary(true);
-      const result = await blogApi.generateSummary(post.id);
-      setSummary(result.summary);
-      setPost(prev => ({ ...prev, summary: result.summary }));
-      toast({
-        title: '✓ 摘要生成成功',
-        description: 'AI 已自动生成文章摘要',
-      });
+      setSummary('');  // 先清空，准备逐字填充
+
+      await blogApi.generateSummaryStream(
+        post.id,
+        // onToken：每收到一个 token 就追加
+        (token) => {
+          setSummary(prev => (prev || '') + token);
+        },
+        // onDone：生成完成，持久化到 post
+        (finalSummary) => {
+          setPost(prev => ({ ...prev, summary: finalSummary }));
+          setGeneratingSummary(false);
+          toast({ title: '✓ 摘要生成成功', description: 'AI 已自动生成文章摘要' });
+        },
+        // onError
+        (err) => {
+          console.error('生成摘要失败:', err);
+          toast({ variant: 'destructive', title: '✗ 生成失败', description: err.message });
+          setGeneratingSummary(false);
+        }
+      );
     } catch (err) {
       console.error('生成摘要失败:', err);
-      toast({
-        variant: 'destructive',
-        title: '✗ 生成失败',
-        description: err.message || '请稍后重试',
-      });
-    } finally {
+      toast({ variant: 'destructive', title: '✗ 生成失败', description: err.message });
       setGeneratingSummary(false);
     }
   };
@@ -128,35 +133,6 @@ function PostDetailPage() {
       setError('文章不存在或已被删除');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleEdit = () => {
-    // TODO: 跳转到编辑页面或打开编辑对话框
-    console.log('编辑文章:', post.id);
-  };
-
-  const handleDelete = () => {
-    setDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    try {
-      await blogApi.deletePost(post.id);
-      toast({
-        title: "✓ 删除成功",
-        description: `《${post.title}》已删除。`,
-      });
-      navigate('/blog');
-    } catch (err) {
-      console.error('删除失败:', err);
-      toast({
-        variant: "destructive",
-        title: "✗ 删除失败",
-        description: "请稍后重试",
-      });
-    } finally {
-      setDeleteDialogOpen(false);
     }
   };
 
@@ -228,13 +204,23 @@ function PostDetailPage() {
                 </div>
 
                 {/* AI 摘要区域 */}
-                {(summary || hasRole(['editor', 'admin'])) && (
+                {(summary || summary === '' || hasRole(['editor', 'admin'])) && (
                   <div className="mb-6">
-                    {summary ? (
+                    {summary || summary === '' ? (
                       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                         <div className="flex items-start justify-between gap-2">
                           <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed" style={{ fontWeight: '400', letterSpacing: '0.01em' }}>
-                            <span className="font-semibold">📝 AI 摘要：</span>{summary}
+                            <span className="font-semibold">📝 AI 摘要：</span>
+                            {summary || (
+                              <span className="text-blue-500">
+                                <Loader2 className="w-3 h-3 inline animate-spin mr-1" />
+                                思考中...
+                              </span>
+                            )}
+                            {/* 打字机闪烁光标 */}
+                            {generatingSummary && summary && (
+                              <span className="inline-block w-0.5 h-4 bg-blue-500 ml-0.5 animate-pulse align-middle" />
+                            )}
                           </p>
                           {hasRole(['editor', 'admin']) && (
                             <Button
@@ -266,7 +252,7 @@ function PostDetailPage() {
                           {generatingSummary ? (
                             <>
                               <Loader2 className="w-4 h-4 animate-spin" />
-                              AI 生成中...
+                              AI 思考中...
                             </>
                           ) : (
                             <>
@@ -333,17 +319,6 @@ function PostDetailPage() {
         </div>
       </div>
 
-      {/* 删除确认对话框 */}
-      <ConfirmDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        title="确认删除"
-        description={`确定要删除《${post?.title}》吗？此操作不可逆！`}
-        onConfirm={handleConfirmDelete}
-        confirmText="删除"
-        cancelText="取消"
-        confirmVariant="destructive"
-      />
     </>
   );
 }

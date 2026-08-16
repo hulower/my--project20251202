@@ -112,7 +112,7 @@ function LoginPage() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="your@email.com"
+                    placeholder="请输入邮箱"
                     value={formData.email}
                     onChange={handleChange('email')}
                     className="pl-10"
@@ -132,7 +132,7 @@ function LoginPage() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="••••••••"
+                    placeholder="请输入密码"
                     value={formData.password}
                     onChange={handleChange('password')}
                     className="pl-10"

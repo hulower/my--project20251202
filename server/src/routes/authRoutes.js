@@ -58,6 +58,18 @@ router.post('/login', authController.login);
  */
 router.post('/refresh', authController.refreshToken);
 
+/**
+ * 重置密码
+ * POST /api/auth/reset-password
+ *
+ * 请求体：
+ * {
+ *   "email": "zhangsan@example.com",
+ *   "newPassword": "newPass456"
+ * }
+ */
+router.post('/reset-password', authController.resetPassword);
+
 // ========================================
 // 保护路由 - 需要认证
 // ========================================

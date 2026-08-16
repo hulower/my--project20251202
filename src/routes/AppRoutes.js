@@ -7,6 +7,7 @@ import TagManagePage from '../features/blog/pages/TagManagePage';
 import MusicManagePage from '../features/music/pages/MusicManagePage';
 import LoginPage from '../features/auth/pages/LoginPage';
 import RegisterPage from '../features/auth/pages/RegisterPage';
+import ForgotPasswordPage from '../features/auth/pages/ForgotPasswordPage';
 import ProfilePage from '../features/user/pages/ProfilePage';
 import SettingsPage from '../features/user/pages/SettingsPage';
 import { ProtectedRoute, GuestOnly } from '../components/ProtectedRoute';
@@ -32,15 +33,23 @@ function AppRoutes() {
           </GuestOnly>
         } 
       />
-      <Route 
-        path="/register" 
+      <Route
+        path="/register"
         element={
           <GuestOnly>
             <RegisterPage />
           </GuestOnly>
-        } 
+        }
       />
-      
+      <Route
+        path="/forgot-password"
+        element={
+          <GuestOnly>
+            <ForgotPasswordPage />
+          </GuestOnly>
+        }
+      />
+
       {/* 受保护路由 - 需要登录 */}
       <Route 
         path="/profile" 

@@ -78,4 +78,49 @@ async function generateSummary(content, skillName = 'default') {
   return summary;
 }
 
-module.exports = { generateSummary };
+/**
+ * 流式生成文章摘要（每次返回一个 token）
+ * 用于 SSE 逐字推送给前端，实现打字机效果
+ *
+ * @param {string} content - 文章 HTML 内容
+ * @param {string} skillName - Skill 名称
+ * @returns {AsyncGenerator<string>} 每次 yield 一个文本片段
+ */
+async function* generateSummaryStream(content, skillName = 'default') {
+  const plainText = stripHtml(content);
+
+  if (!plainText || plainText.length < 50) {
+    throw new Error('文章内容过短，无法生成摘要');
+  }
+
+  const skill = SUMMARY_SKILL;
+  console.log(`🤖 开始流式生成摘要，文章长度: ${plainText.length} 字符`);
+
+  const prompt = ChatPromptTemplate.fromMessages([
+    SystemMessagePromptTemplate.fromTemplate(skill.systemPrompt),
+    HumanMessagePromptTemplate.fromTemplate('请为以下文章生成摘要：\n\n{content}'),
+  ]);
+
+  const model = new ChatOpenAI({
+    apiKey: process.env.DEEPSEEK_API_KEY,
+    configuration: {
+      baseURL: process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com',
+    },
+    modelName: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
+    temperature: 0.3,
+    maxTokens: 300,
+    streaming: true,           // ← 关键：启用流式输出
+  });
+
+  const chain = prompt.pipe(model);
+  const stream = await chain.stream({ content: plainText });
+
+  for await (const chunk of stream) {
+    if (chunk.content) {
+      yield chunk.content;     // 每次 yield 一个 token
+    }
+  }
+  console.log('✅ 流式摘要生成完成');
+}
+
+module.exports = { generateSummary, generateSummaryStream };

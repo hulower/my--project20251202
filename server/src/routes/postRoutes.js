@@ -227,6 +227,7 @@ router.post('/:id/view', postController.incrementView);
  * @access Protected（需要 editor/admin 权限）
  */
 router.post('/:id/generate-summary', authenticate, authorize(['editor', 'admin']), aiSummaryController.generatePostSummary);
+router.post('/:id/generate-summary-stream', authenticate, authorize(['editor', 'admin']), aiSummaryController.generatePostSummaryStream);
 
 // ========================================
 // 文章标签相关路由

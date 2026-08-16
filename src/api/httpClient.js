@@ -52,7 +52,12 @@ async function request(path, options = {}) {
   const url = `${API_BASE}${path}`;
   
   // 公开接口不需要 token（登录、注册、刷新等）
-  const publicPaths = ['/auth/login', '/auth/register', '/auth/refresh'];
+  const publicPaths = [
+    '/auth/login',
+    '/auth/register',
+    '/auth/refresh',
+    '/auth/reset-password',
+  ];
   const isPublicPath = publicPaths.some(p => path.includes(p));
   
   // 自动添加 Authorization header（公开接口除外）
